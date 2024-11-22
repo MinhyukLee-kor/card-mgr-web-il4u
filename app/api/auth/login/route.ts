@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '@/lib/googleSheets';
-import { cookies } from 'next/headers';
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,26 +29,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 세션 쿠키 설정
-    cookies().set('user', JSON.stringify({
+    const userData = {
       email: user.email,
       name: user.name,
       role: user.role,
-    }), {
-      httpOnly: true,
+    };
+
+    // 응답 생성
+    const response = NextResponse.json({
+      message: '로그인 성공',
+      user: userData
+    });
+
+    // 쿠키 설정
+    response.cookies.set({
+      name: 'user',
+      value: JSON.stringify(userData),
+      path: '/',
+      httpOnly: false, // 클라이언트에서 접근 가능하도록 설정
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: 60 * 60 * 24 // 24시간
     });
 
-    return NextResponse.json({
-      message: '로그인 성공',
-      user: {
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      }
-    });
+    return response;
   } catch (error) {
     console.error('로그인 처리 중 오류 발생:', error);
     return NextResponse.json(

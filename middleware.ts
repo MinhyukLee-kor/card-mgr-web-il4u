@@ -2,17 +2,18 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-  const user = request.cookies.get('user');
+  const userCookie = request.cookies.get('user')?.value;
   const isLoginPage = request.nextUrl.pathname === '/login';
+  const isRootPage = request.nextUrl.pathname === '/';
 
   // 로그인되지 않은 상태에서 로그인 페이지가 아닌 페이지 접근 시
-  if (!user && !isLoginPage) {
+  if (!userCookie && !isLoginPage) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  // 이미 로그인된 상태에서 로그인 페이지 접근 시
-  if (user && isLoginPage) {
-    return NextResponse.redirect(new URL('/', request.url));
+  // 이미 로그인된 상태에서 로그인 페이지나 루트 페이지 접근 시
+  if (userCookie && (isLoginPage || isRootPage)) {
+    return NextResponse.redirect(new URL('/expenses', request.url));
   }
 
   return NextResponse.next();

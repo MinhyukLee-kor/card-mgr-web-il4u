@@ -9,43 +9,47 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { ExpenseForm, ExpenseShare, UserOption } from '@/types/expense';
 import { Loading } from "@/components/ui/loading";
 
-export default function CreateExpensePage() {
+export default function EditExpensePage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const [users, setUsers] = useState<ExpenseShare[]>([{ email: '', name: '', amount: 0 }]);
+  const [users, setUsers] = useState<ExpenseShare[]>([]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [error, setError] = useState<string>('');
-  const { register, handleSubmit, formState: { errors } } = useForm<ExpenseForm>();
   const [isLoading, setIsLoading] = useState(false);
+  const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch('/api/users');
-        const data = await response.json();
-        setUserOptions(data.users);
+        // 사용자 목록 조회
+        const usersResponse = await fetch('/api/users');
+        const usersData = await usersResponse.json();
+        setUserOptions(usersData.users);
+
+        // 기존 내역 조회
+        const expenseResponse = await fetch(`/api/expenses/${params.id}`);
+        const expenseData = await expenseResponse.json();
+        
+        if (expenseResponse.ok) {
+          const { expense } = expenseData;
+          setValue('date', expense.date);
+          setValue('memo', expense.memo);
+          setUsers(expense.users);
+        }
       } catch (error) {
-        console.error('사용자 목록 조회 실패:', error);
+        console.error('데이터 조회 실패:', error);
+        setError('데이터 조회 중 오류가 발생했습니다.');
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchUsers();
-  }, []);
-
-  const addUser = () => {
-    setUsers([...users, { email: '', name: '', amount: 0 }]);
-  };
-
-  const removeUser = (index: number) => {
-    setUsers(users.filter((_, i) => i !== index));
-  };
+    fetchData();
+  }, [params.id, setValue]);
 
   const updateUser = (index: number, field: keyof ExpenseShare, value: string | number) => {
     const newUsers = [...users];
     if (field === 'name' && typeof value === 'string') {
-      // 사용자가 선택되면 이메일도 함께 업데이트
       const selectedUser = userOptions.find(option => option.name === value);
       if (selectedUser) {
         newUsers[index] = {
@@ -66,8 +70,8 @@ export default function CreateExpensePage() {
   const onSubmit = async (data: ExpenseForm) => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
+      const response = await fetch(`/api/expenses/${params.id}`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -87,8 +91,7 @@ export default function CreateExpensePage() {
       router.push('/expenses');
       router.refresh();
     } catch (error) {
-      console.error('사용 내역 등록 중 오류가 발생했습니다:', error);
-      setError('사용 내역 등록 중 오류가 발생했습니다.');
+      setError('수정 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -100,8 +103,8 @@ export default function CreateExpensePage() {
       <div className="container mx-auto py-10">
         <Card>
           <CardHeader>
-            <CardTitle>사용 내역 등록</CardTitle>
-            <CardDescription>법인카드 사용 내역을 등록하세요.</CardDescription>
+            <CardTitle>사용 내역 수정</CardTitle>
+            <CardDescription>법인카드 사용 내역을 수정하세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -136,16 +139,8 @@ export default function CreateExpensePage() {
                       value={user.amount}
                       onChange={(e) => updateUser(index, 'amount', parseInt(e.target.value))}
                     />
-                    {users.length > 1 && (
-                      <Button type="button" onClick={() => removeUser(index)}>
-                        삭제
-                      </Button>
-                    )}
                   </div>
                 ))}
-                <Button type="button" onClick={addUser}>
-                  사용자 추가
-                </Button>
               </div>
 
               <div className="space-y-2">
@@ -159,9 +154,19 @@ export default function CreateExpensePage() {
                 <div className="text-sm text-red-500">{error}</div>
               )}
 
-              <Button type="submit" className="w-full">
-                등록하기
-              </Button>
+              <div className="flex gap-2">
+                <Button type="submit" className="flex-1">
+                  수정하기
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => router.back()}
+                  className="flex-1"
+                >
+                  취소
+                </Button>
+              </div>
             </form>
           </CardContent>
         </Card>
