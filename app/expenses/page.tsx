@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/ui/loading";
+import { Pencil, Trash2 } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -14,12 +15,13 @@ interface Expense {
     name: string;
     email: string;
   };
-  user: {
-    name: string;
-    email: string;
-  };
   amount: number;
   memo: string;
+  isCardUsage: boolean;
+  users: {
+    name: string;
+    amount: number;
+  }[];
 }
 
 export default function ExpensesPage() {
@@ -28,6 +30,7 @@ export default function ExpensesPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>('');
+  const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
 
   // 현재 달의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -61,6 +64,7 @@ export default function ExpensesPage() {
       const params = new URLSearchParams();
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
+      if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
 
       const response = await fetch(`/api/expenses?${params}`);
       const data = await response.json();
@@ -81,7 +85,7 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchExpenses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate]);
+  }, [startDate, endDate, isCardUsage]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR');
@@ -161,84 +165,140 @@ export default function ExpensesPage() {
             <CardDescription>법인카드 사용 내역을 조회합니다.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  placeholder="시작일"
-                  className="w-full"
-                />
+            <div className="flex flex-col gap-4 mb-6">
+              <div className="flex gap-2">
+                <div className="flex-1 flex gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    placeholder="시작일"
+                    className="w-full text-xs sm:text-sm"
+                  />
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    placeholder="종료일"
+                    className="w-full text-xs sm:text-sm"
+                  />
+                </div>
+                <Button onClick={fetchExpenses} className="shrink-0">
+                  조회
+                </Button>
               </div>
-              <div className="flex-1">
-                <Input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  placeholder="종료일"
-                  className="w-full"
-                />
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <span className="text-sm font-medium">결제수단:</span>
+                <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={isCardUsage === null}
+                      onChange={() => setIsCardUsage(null)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${isCardUsage === null ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      전체
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={isCardUsage === true}
+                      onChange={() => setIsCardUsage(true)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${isCardUsage === true ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      법인카드
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={isCardUsage === false}
+                      onChange={() => setIsCardUsage(false)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${isCardUsage === false ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      개인카드
+                    </span>
+                  </label>
+                </div>
               </div>
-              <Button onClick={fetchExpenses} className="w-full sm:w-auto">
-                조회
-              </Button>
             </div>
 
             {error && (
               <div className="text-red-500 mb-4">{error}</div>
             )}
 
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse min-w-[640px]">
+            <div className="overflow-x-auto -mx-4 sm:mx-0">
+              <table className="w-full border-collapse min-w-full">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border p-2 text-left whitespace-nowrap">날짜</th>
-                    <th className="border p-2 text-left whitespace-nowrap">등록자</th>
-                    <th className="border p-2 text-left whitespace-nowrap">사용자</th>
-                    <th className="border p-2 text-right whitespace-nowrap">금액</th>
-                    <th className="border p-2 text-left whitespace-nowrap">비고</th>
-                    <th className="border p-2 text-center whitespace-nowrap">관리</th>
+                    <th className="border p-1 sm:p-2 text-cneter whitespace-nowrap text-xs sm:text-sm">날짜</th>
+                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용자</th>
+                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">금액</th>
+                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용내역</th>
+                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">카드유형</th>
+                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">관리</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.map((expense) => (
-                    <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="border p-2 whitespace-nowrap">{formatDate(expense.date)}</td>
-                      <td className="border p-2 whitespace-nowrap">{expense.registrant.name}</td>
-                      <td className="border p-2 whitespace-nowrap">{expense.user.name}</td>
-                      <td className="border p-2 text-right whitespace-nowrap">{formatAmount(expense.amount)}</td>
-                      <td className="border p-2">{expense.memo}</td>
-                      <td className="border p-2 text-center whitespace-nowrap">
-                        {expense.registrant.name === userName && (
-                          <div className="flex justify-center gap-2">
-                            <Button
-                              onClick={() => router.push(`/expenses/${expense.id}/edit`)}
-                              className="text-sm px-2 py-1 h-8"
-                            >
-                              수정
-                            </Button>
-                            <Button
-                              onClick={() => handleDelete(expense.id)}
-                              className="text-sm px-2 py-1 h-8 bg-red-500 hover:bg-red-600"
-                            >
-                              삭제
-                            </Button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
+                    // 각 사용자별로 행 생성
+                    expense.users.map((user, userIndex) => (
+                      <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
+                        {/* 첫 번째 사용자의 경우에만 날짜와 메모를 표시 */}
+                        <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                          {userIndex === 0 ? formatDate(expense.date).replace(/\s*년\s*|\s*월\s*|\s*일\s*/g, '.') : ''}
+                        </td>
+                        <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                          {user.name}
+                        </td>
+                        <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">
+                          {formatAmount(user.amount)}
+                        </td>
+                        <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm max-w-[100px] truncate">
+                          {userIndex === 0 ? expense.memo : ''}
+                        </td>
+                        <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm">
+                          {userIndex === 0 ? (expense.isCardUsage ? '법인' : '개인') : ''}
+                        </td>
+                        {/* 첫 번째 사용자의 경우에만 관리 버튼을 표시 */}
+                        <td className="border p-1 sm:p-2 text-center">
+                          {userIndex === 0 && (
+                            <div className="flex justify-center gap-1">
+                              <Button
+                                onClick={() => router.push(`/expenses/${expense.id}/edit`)}
+                                className="h-6 w-6 p-1"
+                                title="수정"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                onClick={() => handleDelete(expense.id)}
+                                className="h-6 w-6 p-1 bg-red-500 hover:bg-red-600"
+                                title="삭제"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
                   ))}
                   {expenses.length > 0 && (
                     <tr className="bg-gray-100 font-semibold">
-                      <td colSpan={3} className="border p-2 text-right whitespace-nowrap">총액</td>
-                      <td className="border p-2 text-right whitespace-nowrap">{formatAmount(totalAmount)}</td>
-                      <td colSpan={2} className="border p-2"></td>
+                      <td colSpan={2} className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">총액</td>
+                      <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">{formatAmount(totalAmount)}</td>
+                      <td colSpan={3} className="border p-1 sm:p-2"></td>
                     </tr>
                   )}
                   {expenses.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="border p-2 text-center text-gray-500">
+                      <td colSpan={6} className="border p-2 text-center text-gray-500 text-xs sm:text-sm">
                         조회된 내역이 없습니다.
                       </td>
                     </tr>

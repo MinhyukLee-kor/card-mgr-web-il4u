@@ -82,84 +82,115 @@ export const getAllUsers = async () => {
   }
 };
 
-// 사용 내역 등록
+// 사용 내역 등록 (마스터/디테일)
 export const createExpense = async (expense: ExpenseForm, registrant: { email: string; name: string }) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    // 각 사용자별로 고유한 ID 생성
-    const rows = expense.users.map((user: ExpenseShare) => {
-      const id = uuidv4();  // 각 행마다 새로운 UUID 생성
-      return [
-        expense.date,
-        registrant.name,
-        user.name,
-        user.amount,
-        expense.memo,
-        id,          // 각각 다른 UUID 사용
-        registrant.email,
-        user.email
-      ];
-    });
+    const id = uuidv4();
+    const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
+
+    // 마스터 데이터 등록
+    const masterRow = [
+      id,
+      expense.date,
+      registrant.name,
+      totalAmount,
+      expense.memo,
+      registrant.email,
+      expense.isCardUsage ? 'TRUE' : 'FALSE'
+    ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역마스터!A2:G',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: rows
+        values: [masterRow]
       },
     });
 
-    return rows[0][5]; // 첫 번째 ID 반환 (참조용)
+    // 디테일 데이터 등록
+    const detailRows = expense.users.map(user => [
+      id,
+      user.name,
+      user.amount
+    ]);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:C',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: detailRows
+      },
+    });
+
+    return id;
   } catch (error) {
     console.error('사용 내역 등록 중 오류 발생:', error);
     throw error;
   }
 };
 
-// 사용 내역 조회
-export const getExpenses = async (email: string, startDate?: string, endDate?: string) => {
+// 사용 내역 조회 (마스터/디테일 조인)
+export const getExpenses = async (email: string, startDate?: string, endDate?: string, isCardUsage?: boolean) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    const response = await sheets.spreadsheets.values.get({
+    // 마스터 데이터 조회
+    const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역마스터!A2:G',
     });
 
-    const rows = response.data.values;
-    if (!rows) return [];
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:C',
+    });
+
+    const masters = masterResponse.data.values || [];
+    const details = detailResponse.data.values || [];
 
     // 날짜 필터링을 위한 시작일과 종료일
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    // 이메일과 관련된 내역만 필터링 (등록자 또는 사용자)
-    return rows
-      .filter(row => {
-        const rowDate = new Date(row[0]);
-        return (
-          (row[6] === email || row[7] === email) && // 등록자이메일 또는 사용자이메일 확인
-          rowDate >= start &&
-          rowDate <= end
-        );
+    // 등록자 본인의 내역만 필터링
+    return masters
+      .filter(master => {
+        const rowDate = new Date(master[1]);
+        const isDateInRange = rowDate >= start && rowDate <= end;
+        const isRegistrantMatch = master[5] === email;
+        const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
+          ? true 
+          : (master[6] === 'TRUE') === isCardUsage;
+
+        return isDateInRange && isRegistrantMatch && isCardUsageMatch;
       })
-      .map(row => ({
-        id: row[5],
-        date: row[0],
-        registrant: {
-          name: row[1],
-          email: row[6]
-        },
-        user: {
-          name: row[2],
-          email: row[7]
-        },
-        amount: parseInt(row[3]),
-        memo: row[4]
-      }))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); // 날짜 기준 내림차순 정렬
+      .map(master => {
+        // 해당 마스터 ID의 디테일 데이터 찾기
+        const userDetails = details
+          .filter(detail => detail[0] === master[0])
+          .map(detail => ({
+            name: detail[1],
+            amount: parseInt(detail[2])
+          }));
+
+        return {
+          id: master[0],
+          date: master[1],
+          registrant: {
+            name: master[2],
+            email: master[5]
+          },
+          amount: parseInt(master[3]),
+          memo: master[4],
+          isCardUsage: master[6] === 'TRUE',
+          users: userDetails
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   } catch (error) {
     console.error('사용 내역 조회 중 오류 발생:', error);
     throw error;
@@ -171,49 +202,73 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
   const sheets = getGoogleSheetClient();
   
   try {
-    // 기존 데이터 삭제
-    const response = await sheets.spreadsheets.values.get({
+    // 총액 계산
+    const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
+
+    // 1. 마스터 데이터 수정
+    const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역마스터!A2:G',
     });
 
-    const rows = response.data.values;
-    if (!rows) throw new Error('데이터를 찾을 수 없습니다.');
+    const masterRows = masterResponse.data.values || [];
+    const masterRowIndex = masterRows.findIndex(row => row[0] === id);
 
-    // 해당 ID의 행 찾기
-    const rowIndexes = rows.reduce((acc: number[], row, index) => {
-      if (row[5] === id) acc.push(index + 2); // +2는 헤더와 0-based index 보정
+    if (masterRowIndex === -1) {
+      throw new Error('수정할 마스터 데이터를 찾을 수 없습니다.');
+    }
+
+    // 마스터 데이터 업데이트
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.SHEET_ID,
+      range: `사용내역마스터!A${masterRowIndex + 2}:G${masterRowIndex + 2}`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          id,
+          expense.date,
+          registrant.name,
+          totalAmount,
+          expense.memo,
+          registrant.email,
+          expense.isCardUsage ? 'TRUE' : 'FALSE'
+        ]]
+      },
+    });
+
+    // 2. 기존 디테일 데이터 삭제
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:C',
+    });
+
+    const existingDetailRows = detailResponse.data.values || [];
+    const detailRowIndexes = existingDetailRows.reduce((acc: number[], row, index) => {
+      if (row[0] === id) acc.push(index + 2);
       return acc;
     }, []);
 
-    if (rowIndexes.length === 0) throw new Error('수정할 데이터를 찾을 수 없습니다.');
-
-    // 기존 데이터 삭제
-    for (const rowIndex of rowIndexes) {
+    // 디테일 데이터 삭제 (각 행을 빈 값으로 업데이트)
+    for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역!A${rowIndex}:H${rowIndex}`,
+        range: `사용내역디테일!A${rowIndex}:C${rowIndex}`,
       });
     }
 
-    // 새 데이터 추가
-    const newRows = expense.users.map(user => [
-      expense.date,
-      registrant.name,
-      user.name,
-      user.amount,
-      expense.memo,
+    // 3. 새로운 디테일 데이터 추가
+    const newDetailRows = expense.users.map(user => [
       id,
-      registrant.email,
-      user.email
+      user.name,
+      user.amount
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역디테일!A2:C',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: newRows
+        values: newDetailRows
       },
     });
 
@@ -229,27 +284,39 @@ export const deleteExpense = async (id: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    const response = await sheets.spreadsheets.values.get({
+    // 1. 마스터 데이터 삭제
+    const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역마스터!A2:G',
     });
 
-    const rows = response.data.values;
-    if (!rows) throw new Error('데이터를 찾을 수 없습니다.');
+    const masterRows = masterResponse.data.values || [];
+    const masterRowIndex = masterRows.findIndex(row => row[0] === id);
 
-    // 해당 ID의 행 찾기
-    const rowIndexes = rows.reduce((acc: number[], row, index) => {
-      if (row[5] === id) acc.push(index + 2);
+    if (masterRowIndex !== -1) {
+      await sheets.spreadsheets.values.clear({
+        spreadsheetId: process.env.SHEET_ID,
+        range: `사용내역마스터!A${masterRowIndex + 2}:G${masterRowIndex + 2}`,
+      });
+    }
+
+    // 2. 디테일 데이터 삭제
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:C',
+    });
+
+    const detailRows = detailResponse.data.values || [];
+    const detailRowIndexes = detailRows.reduce((acc: number[], row, index) => {
+      if (row[0] === id) acc.push(index + 2);
       return acc;
     }, []);
 
-    if (rowIndexes.length === 0) throw new Error('삭제할 데이터를 찾을 수 없습니다.');
-
-    // 데이터 삭제
-    for (const rowIndex of rowIndexes) {
+    // 디테일 데이터 삭제
+    for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역!A${rowIndex}:H${rowIndex}`,
+        range: `사용내역디테일!A${rowIndex}:C${rowIndex}`,
       });
     }
 
@@ -265,34 +332,42 @@ export const getExpenseById = async (id: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    const response = await sheets.spreadsheets.values.get({
+    // 마스터 데이터 조회
+    const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역!A2:H',
+      range: '사용내역마스터!A2:G',
     });
 
-    const rows = response.data.values;
-    if (!rows) return null;
+    const masterRows = masterResponse.data.values || [];
+    const masterRow = masterRows.find(row => row[0] === id);
 
-    // ID로 관련 행들 찾기
-    const expenseRows = rows.filter(row => row[5] === id);
-    if (expenseRows.length === 0) return null;
+    if (!masterRow) return null;
 
-    // 첫 번째 행에서 공통 정보 추출
-    const firstRow = expenseRows[0];
-    
+    // 디테일 데이터 조회
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:C',
+    });
+
+    const detailRows = detailResponse.data.values || [];
+    const userDetails = detailRows
+      .filter(row => row[0] === id)
+      .map(row => ({
+        name: row[1],
+        amount: parseInt(row[2])
+      }));
+
     return {
-      id: firstRow[5],
-      date: firstRow[0],
+      id: masterRow[0],
+      date: masterRow[1],
       registrant: {
-        name: firstRow[1],
-        email: firstRow[6]
+        name: masterRow[2],
+        email: masterRow[5]
       },
-      users: expenseRows.map(row => ({
-        name: row[2],
-        email: row[7],
-        amount: parseInt(row[3])
-      })),
-      memo: firstRow[4]
+      amount: parseInt(masterRow[3]),
+      memo: masterRow[4],
+      isCardUsage: masterRow[6] === 'TRUE',
+      users: userDetails
     };
   } catch (error) {
     console.error('사용 내역 조회 중 오류 발생:', error);

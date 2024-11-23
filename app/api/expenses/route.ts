@@ -16,8 +16,11 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
+    const isCardUsage = searchParams.get('isCardUsage');
+    
+    const isCardUsageBoolean = isCardUsage === null ? undefined : isCardUsage === 'true';
 
-    const expenses = await getExpenses(user.email, startDate, endDate);
+    const expenses = await getExpenses(user.email, startDate, endDate, isCardUsageBoolean);
 
     return NextResponse.json({ expenses });
   } catch (error) {
