@@ -36,6 +36,7 @@ export default function LoginPage() {
       router.push('/expenses');
       router.refresh();
     } catch (error) {
+      console.error('로그인 처리 중 오류 발생:', error);
       setError('로그인 처리 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

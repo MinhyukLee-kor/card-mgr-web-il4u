@@ -1,6 +1,6 @@
 import { google } from 'googleapis';
 import { JWT } from 'google-auth-library';
-import { ExpenseForm, ExpenseShare } from '@/types/expense';
+import { ExpenseForm } from '@/types/expense';
 import { v4 as uuidv4 } from 'uuid';
 
 // 구글 시트 클라이언트 설정

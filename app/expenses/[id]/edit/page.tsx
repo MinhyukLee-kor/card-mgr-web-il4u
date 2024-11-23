@@ -96,6 +96,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
       router.push('/expenses');
       router.refresh();
     } catch (error) {
+      console.error('수정 중 오류 발생:', error);
       setError('수정 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);

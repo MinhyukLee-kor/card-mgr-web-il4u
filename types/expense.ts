@@ -33,4 +33,10 @@ export interface ExpenseForm {
 export interface UserOption {
   email: string;
   name: string;
+}
+
+export interface ExpenseShare {
+  email: string;
+  name: string;
+  amount: number;
 } 

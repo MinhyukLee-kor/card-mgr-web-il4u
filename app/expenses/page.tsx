@@ -76,6 +76,7 @@ export default function ExpensesPage() {
 
       setExpenses(data.expenses);
     } catch (error) {
+      console.error('사용 내역 조회 중 오류 발생:', error);
       setError('사용 내역 조회 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
