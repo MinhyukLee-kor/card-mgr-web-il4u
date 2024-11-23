@@ -308,7 +308,7 @@ export default function ExpensesPage() {
 
             {expenses.length > 0 && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                <div className="text-right font-semibold">
+                <div className="text-left font-semibold">
                   총액: {formatAmount(totalAmount)}
                 </div>
               </div>
