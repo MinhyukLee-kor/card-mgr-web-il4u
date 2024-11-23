@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ExpenseForm, ExpenseShare, UserOption } from '@/types/expense';
 import { Loading } from "@/components/ui/loading";
+import { ArrowLeft } from 'lucide-react';
+import { formatAmount, parseAmount } from "@/lib/utils";
 
 export default function EditExpensePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -15,6 +17,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isCardUsage, setIsCardUsage] = useState(false);
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
 
   useEffect(() => {
@@ -35,6 +38,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           setValue('date', expense.date);
           setValue('memo', expense.memo);
           setUsers(expense.users);
+          setIsCardUsage(expense.isCardUsage);
         }
       } catch (error) {
         console.error('데이터 조회 실패:', error);
@@ -58,10 +62,10 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           email: selectedUser.email
         };
       }
-    } else {
+    } else if (field === 'amount') {
       newUsers[index] = {
         ...newUsers[index],
-        [field]: value
+        amount: parseAmount(value as string)
       };
     }
     setUsers(newUsers);
@@ -77,6 +81,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify({
           ...data,
+          isCardUsage,
           users
         }),
       });
@@ -100,7 +105,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
   return (
     <>
       {isLoading && <Loading />}
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 수정</CardTitle>
@@ -112,21 +117,48 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                 <Input
                   type="date"
                   {...register('date', { required: true })}
+                  className="w-full"
                 />
                 {errors.date && (
                   <span className="text-sm text-red-500">날짜를 선택하세요.</span>
                 )}
               </div>
 
-              <div className="space-y-4">
+              {/* 법인카드 여부 선택 */}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    checked={isCardUsage === true}
+                    onChange={() => setIsCardUsage(true)}
+                    className="hidden"
+                  />
+                  <span className={`text-sm ${isCardUsage === true ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                    법인카드
+                  </span>
+                </label>
+                <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    checked={isCardUsage === false}
+                    onChange={() => setIsCardUsage(false)}
+                    className="hidden"
+                  />
+                  <span className={`text-sm ${isCardUsage === false ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                    개인카드
+                  </span>
+                </label>
+              </div>
+
+              <div className="space-y-2">
                 {users.map((user, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={index} className="flex items-center gap-2">
                     <select
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                      className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                       value={user.name}
                       onChange={(e) => updateUser(index, 'name', e.target.value)}
                     >
-                      <option value="">사용자 선택</option>
+                      <option value="">사용자</option>
                       {userOptions.map((option) => (
                         <option key={option.email} value={option.name}>
                           {option.name}
@@ -134,10 +166,11 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                       ))}
                     </select>
                     <Input
-                      type="number"
+                      type="text"
                       placeholder="금액"
-                      value={user.amount}
-                      onChange={(e) => updateUser(index, 'amount', parseInt(e.target.value))}
+                      value={formatAmount(user.amount)}
+                      onChange={(e) => updateUser(index, 'amount', e.target.value)}
+                      className="w-24 text-right"
                     />
                   </div>
                 ))}
@@ -145,8 +178,9 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
 
               <div className="space-y-2">
                 <Input
-                  placeholder="비고"
+                  placeholder="사용내역"
                   {...register('memo')}
+                  className="w-full"
                 />
               </div>
 
@@ -154,22 +188,22 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                 <div className="text-sm text-red-500">{error}</div>
               )}
 
-              <div className="flex gap-2">
-                <Button type="submit" className="flex-1">
-                  수정하기
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => router.back()}
-                  className="flex-1 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
-                >
-                  취소
-                </Button>
-              </div>
+              <Button type="submit" className="w-full">
+                수정하기
+              </Button>
             </form>
           </CardContent>
         </Card>
       </div>
+
+      {/* 플로팅 뒤로가기 버튼 */}
+      <Button
+        onClick={() => router.back()}
+        className="fixed bottom-6 left-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl bg-white border border-gray-200 hover:bg-gray-100"
+        title="뒤로가기"
+      >
+        <ArrowLeft className="h-6 w-6 text-gray-600" />
+      </Button>
     </>
   );
 } 

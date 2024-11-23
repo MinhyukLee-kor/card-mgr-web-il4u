@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ExpenseForm, ExpenseShare, UserOption } from '@/types/expense';
 import { Loading } from "@/components/ui/loading";
+import { ArrowLeft } from 'lucide-react';
+import { formatAmount, parseAmount } from "@/lib/utils";
 
 export default function CreateExpensePage() {
   const router = useRouter();
@@ -18,6 +20,7 @@ export default function CreateExpensePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isCardUsage, setIsCardUsage] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
+  const [totalAmount, setTotalAmount] = useState<number>(0);
 
   useEffect(() => {
     // 현재 로그인한 사용자 정보 가져오기
@@ -90,7 +93,6 @@ export default function CreateExpensePage() {
   const updateUser = (index: number, field: keyof ExpenseShare, value: string | number) => {
     const newUsers = [...users];
     if (field === 'name' && typeof value === 'string') {
-      // 사용자가 선택되면 이메일도 함께 업데이트
       const selectedUser = userOptions.find(option => option.name === value);
       if (selectedUser) {
         newUsers[index] = {
@@ -99,10 +101,10 @@ export default function CreateExpensePage() {
           email: selectedUser.email
         };
       }
-    } else {
+    } else if (field === 'amount') {
       newUsers[index] = {
         ...newUsers[index],
-        [field]: value
+        amount: parseAmount(value as string)
       };
     }
     setUsers(newUsers);
@@ -140,23 +142,34 @@ export default function CreateExpensePage() {
     }
   };
 
+  // 금액 균등 배분 함수
+  const distributeAmount = () => {
+    if (totalAmount <= 0 || users.length === 0) return;
+    
+    const amountPerUser = Math.floor(totalAmount / users.length); // 소수점 버림
+    const remainder = totalAmount - (amountPerUser * users.length); // 나머지 금액
+    
+    const newUsers = users.map((user, index) => ({
+      ...user,
+      amount: amountPerUser + (index === 0 ? remainder : 0) // 나머지 금액은 첫 번째 사용자에게 추가
+    }));
+    
+    setUsers(newUsers);
+  };
+
+  // 총액 변경 핸들러
+  const handleTotalAmountChange = (value: string) => {
+    setTotalAmount(parseAmount(value));
+  };
+
   return (
     <>
       {isLoading && <Loading />}
       <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <div>
-              <CardTitle>사용 내역 등록</CardTitle>
-              <CardDescription>법인카드 사용 내역을 등록하세요.</CardDescription>
-            </div>
-            <Button
-              onClick={() => router.back()}
-              variant="outline"
-              className="shrink-0"
-            >
-              뒤로가기
-            </Button>
+          <CardHeader>
+            <CardTitle>사용 내역 등록</CardTitle>
+            <CardDescription>법인카드 사용 내역을 등록하세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -196,6 +209,28 @@ export default function CreateExpensePage() {
                 </label>
               </div>
 
+              {/* 총액 입력과 균등 배분 버튼 */}
+              <div className="flex gap-2 items-center">
+                <div className="flex-1">
+                  <Input
+                    type="text"
+                    placeholder="총액"
+                    value={formatAmount(totalAmount)}
+                    onChange={(e) => handleTotalAmountChange(e.target.value)}
+                    className="text-right"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  onClick={distributeAmount}
+                  className="whitespace-nowrap"
+                  disabled={totalAmount <= 0 || users.length === 0}
+                >
+                  균등 배분
+                </Button>
+              </div>
+
+              {/* 사용자별 금액 입력 */}
               <div className="space-y-2">
                 {users.map((user, index) => (
                   <div key={index} className="flex items-center gap-2">
@@ -212,10 +247,10 @@ export default function CreateExpensePage() {
                       ))}
                     </select>
                     <Input
-                      type="number"
+                      type="text"
                       placeholder="금액"
-                      value={user.amount || ''}
-                      onChange={(e) => updateUser(index, 'amount', parseInt(e.target.value) || 0)}
+                      value={formatAmount(user.amount)}
+                      onChange={(e) => updateUser(index, 'amount', e.target.value)}
                       className="w-24 text-right"
                     />
                     {users.length > 1 && (
@@ -239,6 +274,16 @@ export default function CreateExpensePage() {
                 </Button>
               </div>
 
+              {/* 현재 총액 표시 */}
+              <div className="text-right text-sm text-gray-500">
+                현재 총액: {users.reduce((sum, user) => sum + (user.amount || 0), 0).toLocaleString()}원
+                {totalAmount > 0 && users.reduce((sum, user) => sum + (user.amount || 0), 0) !== totalAmount && (
+                  <span className="text-red-500 ml-2">
+                    (입력한 총액과 다릅니다)
+                  </span>
+                )}
+              </div>
+
               <div className="space-y-2">
                 <Input
                   placeholder="사용내역"
@@ -258,6 +303,14 @@ export default function CreateExpensePage() {
           </CardContent>
         </Card>
       </div>
+
+      <Button
+        onClick={() => router.back()}
+        className="fixed bottom-6 left-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl bg-white border border-gray-200 hover:bg-gray-100"
+        title="뒤로가기"
+      >
+        <ArrowLeft className="h-6 w-6 text-gray-600" />
+      </Button>
     </>
   );
 } 

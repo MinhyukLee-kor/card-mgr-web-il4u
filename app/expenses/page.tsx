@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/ui/loading";
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -162,9 +162,9 @@ export default function ExpensesPage() {
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 조회</CardTitle>
-            <CardDescription>법인카드 사용 내역을 조회합니다.</CardDescription>
+            <CardDescription>카드 사용 내역을 조회합니다.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3">
             <div className="flex flex-col gap-4 mb-6">
               <div className="flex gap-2">
                 <div className="flex-1 flex gap-2">
@@ -232,92 +232,97 @@ export default function ExpensesPage() {
               <div className="text-red-500 mb-4">{error}</div>
             )}
 
-            <div className="overflow-x-auto -mx-4 sm:mx-0">
-              <table className="w-full border-collapse min-w-full">
-                <thead>
-                  <tr className="bg-gray-100">
-                    <th className="border p-1 sm:p-2 text-cneter whitespace-nowrap text-xs sm:text-sm">날짜</th>
-                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용자</th>
-                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">금액</th>
-                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용내역</th>
-                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">카드유형</th>
-                    <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">관리</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {expenses.map((expense) => (
-                    // 각 사용자별로 행 생성
-                    expense.users.map((user, userIndex) => (
-                      <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
-                        {/* 첫 번째 사용자의 경우에만 날짜와 메모를 표시 */}
-                        <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
-                          {userIndex === 0 ? formatDate(expense.date).replace(/\s*년\s*|\s*월\s*|\s*일\s*/g, '.') : ''}
-                        </td>
-                        <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
-                          {user.name}
-                        </td>
-                        <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">
-                          {formatAmount(user.amount)}
-                        </td>
-                        <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm max-w-[100px] truncate">
-                          {userIndex === 0 ? expense.memo : ''}
-                        </td>
-                        <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm">
-                          {userIndex === 0 ? (expense.isCardUsage ? '법인' : '개인') : ''}
-                        </td>
-                        {/* 첫 번째 사용자의 경우에만 관리 버튼을 표시 */}
-                        <td className="border p-1 sm:p-2 text-center">
-                          {userIndex === 0 && (
-                            <div className="flex justify-center gap-1">
-                              <Button
-                                onClick={() => router.push(`/expenses/${expense.id}/edit`)}
-                                className="h-6 w-6 p-1"
-                                title="수정"
-                              >
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                onClick={() => handleDelete(expense.id)}
-                                className="h-6 w-6 p-1 bg-red-500 hover:bg-red-600"
-                                title="삭제"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          )}
-                        </td>
+            <div className="relative border rounded-lg">
+              <div className="overflow-x-auto">
+                <div style={{ maxHeight: 'calc(100vh - 700px)' }} className="overflow-y-auto min-h-[300px]">
+                  <table className="w-full border-collapse">
+                    <thead className="sticky top-0 bg-white z-10">
+                      <tr className="bg-gray-100">
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">날짜</th>
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용자</th>
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">금액</th>
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">사용내역</th>
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">카드유형</th>
+                        <th className="border p-1 sm:p-2 text-center whitespace-nowrap text-xs sm:text-sm">관리</th>
                       </tr>
-                    ))
-                  ))}
-                  {expenses.length > 0 && (
-                    <tr className="bg-gray-100 font-semibold">
-                      <td colSpan={2} className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">총액</td>
-                      <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">{formatAmount(totalAmount)}</td>
-                      <td colSpan={3} className="border p-1 sm:p-2"></td>
-                    </tr>
-                  )}
-                  {expenses.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="border p-2 text-center text-gray-500 text-xs sm:text-sm">
-                        조회된 내역이 없습니다.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                    </thead>
+                    <tbody className="bg-white">
+                      {expenses.map((expense) => (
+                        // 각 사용자별로 행 생성
+                        expense.users.map((user, userIndex) => (
+                          <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
+                            {/* 첫 번째 사용자의 경우에만 날짜와 메모를 표시 */}
+                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                              {userIndex === 0 ? formatDate(expense.date).replace(/\s*년\s*|\s*월\s*|\s*일\s*/g, '.') : ''}
+                            </td>
+                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                              {user.name}
+                            </td>
+                            <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">
+                              {formatAmount(user.amount)}
+                            </td>
+                            <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm max-w-[100px] truncate">
+                              {userIndex === 0 ? expense.memo : ''}
+                            </td>
+                            <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm">
+                              {userIndex === 0 ? (expense.isCardUsage ? '법인' : '개인') : ''}
+                            </td>
+                            {/* 첫 번째 사용자의 경우에만 관리 버튼을 표시 */}
+                            <td className="border p-1 sm:p-2 text-center">
+                              {userIndex === 0 && (
+                                <div className="flex justify-center gap-1">
+                                  <Button
+                                    onClick={() => router.push(`/expenses/${expense.id}/edit`)}
+                                    className="h-6 w-6 p-1"
+                                    title="수정"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    onClick={() => handleDelete(expense.id)}
+                                    className="h-6 w-6 p-1 bg-red-500 hover:bg-red-600"
+                                    title="삭제"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      ))}
+
+                      {expenses.length === 0 && (
+                        <tr>
+                          <td colSpan={6} className="border p-2 text-center text-gray-500 text-xs sm:text-sm">
+                            조회된 내역이 없습니다.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
 
-            <div className="mt-6">
-              <Button 
-                onClick={() => router.push('/expenses/create')}
-                className="w-full sm:w-auto"
-              >
-                새 내역 등록
-              </Button>
-            </div>
+            {expenses.length > 0 && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-lg">
+                <div className="text-right font-semibold">
+                  총액: {formatAmount(totalAmount)}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <Button
+        onClick={() => router.push('/expenses/create')}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl"
+        title="새 내역 등록"
+      >
+        <Plus className="h-6 w-6" />
+      </Button>
     </>
   );
 } 

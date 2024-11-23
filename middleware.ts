@@ -16,6 +16,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/expenses', request.url));
   }
 
+  // 로그인 페이지에서는 헤더를 숨기기 위한 응답 헤더 추가
+  if (isLoginPage) {
+    const response = NextResponse.next();
+    response.headers.set('x-show-header', 'false');
+    return response;
+  }
+
   return NextResponse.next();
 }
 
