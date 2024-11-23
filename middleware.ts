@@ -2,6 +2,16 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
+  // manifest.json, service worker, 워크박스 등의 정적 파일 요청은 미들웨어를 건너뜀
+  if (
+    request.nextUrl.pathname.startsWith('/manifest.json') ||
+    request.nextUrl.pathname.startsWith('/sw.js') ||
+    request.nextUrl.pathname.startsWith('/workbox-') ||
+    request.nextUrl.pathname.startsWith('/icons/')
+  ) {
+    return NextResponse.next();
+  }
+
   const userCookie = request.cookies.get('user')?.value;
   const isLoginPage = request.nextUrl.pathname === '/login';
   const isRootPage = request.nextUrl.pathname === '/';
@@ -27,5 +37,15 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - icons
+     */
+    '/((?!api|_next/static|_next/image|favicon.ico|icons).*)',
+  ],
 }; 
