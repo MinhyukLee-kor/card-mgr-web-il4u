@@ -97,7 +97,7 @@ export default function CreateExpensePage() {
   return (
     <>
       {isLoading && <Loading />}
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 등록</CardTitle>
@@ -109,6 +109,7 @@ export default function CreateExpensePage() {
                 <Input
                   type="date"
                   {...register('date', { required: true })}
+                  className="w-full"
                 />
                 {errors.date && (
                   <span className="text-sm text-red-500">날짜를 선택하세요.</span>
@@ -117,7 +118,7 @@ export default function CreateExpensePage() {
 
               <div className="space-y-4">
                 {users.map((user, index) => (
-                  <div key={index} className="flex gap-2">
+                  <div key={index} className="flex flex-col sm:flex-row gap-2">
                     <select
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                       value={user.name}
@@ -135,15 +136,24 @@ export default function CreateExpensePage() {
                       placeholder="금액"
                       value={user.amount}
                       onChange={(e) => updateUser(index, 'amount', parseInt(e.target.value))}
+                      className="w-full sm:w-1/3"
                     />
                     {users.length > 1 && (
-                      <Button type="button" onClick={() => removeUser(index)}>
+                      <Button 
+                        type="button" 
+                        onClick={() => removeUser(index)}
+                        className="w-full sm:w-auto"
+                      >
                         삭제
                       </Button>
                     )}
                   </div>
                 ))}
-                <Button type="button" onClick={addUser}>
+                <Button 
+                  type="button" 
+                  onClick={addUser}
+                  className="w-full sm:w-auto"
+                >
                   사용자 추가
                 </Button>
               </div>
@@ -152,6 +162,7 @@ export default function CreateExpensePage() {
                 <Input
                   placeholder="비고"
                   {...register('memo')}
+                  className="w-full"
                 />
               </div>
 

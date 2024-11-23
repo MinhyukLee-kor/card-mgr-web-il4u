@@ -80,7 +80,8 @@ export default function ExpensesPage() {
 
   useEffect(() => {
     fetchExpenses();
-  }, []); // 컴포넌트 마운트 시 자동으로 조회
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, endDate]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR');
@@ -153,20 +154,21 @@ export default function ExpensesPage() {
   return (
     <>
       {isLoading && <Loading />}
-      <div className="container mx-auto py-10">
+      <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 조회</CardTitle>
             <CardDescription>법인카드 사용 내역을 조회합니다.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mb-6">
               <div className="flex-1">
                 <Input
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
                   placeholder="시작일"
+                  className="w-full"
                 />
               </div>
               <div className="flex-1">
@@ -175,9 +177,10 @@ export default function ExpensesPage() {
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}
                   placeholder="종료일"
+                  className="w-full"
                 />
               </div>
-              <Button onClick={fetchExpenses}>
+              <Button onClick={fetchExpenses} className="w-full sm:w-auto">
                 조회
               </Button>
             </div>
@@ -187,36 +190,37 @@ export default function ExpensesPage() {
             )}
 
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
+              <table className="w-full border-collapse min-w-[640px]">
                 <thead>
                   <tr className="bg-gray-100">
-                    <th className="border p-2 text-left">날짜</th>
-                    <th className="border p-2 text-left">등록자</th>
-                    <th className="border p-2 text-left">사용자</th>
-                    <th className="border p-2 text-right">금액</th>
-                    <th className="border p-2 text-left">비고</th>
-                    <th className="border p-2 text-center">관리</th>
+                    <th className="border p-2 text-left whitespace-nowrap">날짜</th>
+                    <th className="border p-2 text-left whitespace-nowrap">등록자</th>
+                    <th className="border p-2 text-left whitespace-nowrap">사용자</th>
+                    <th className="border p-2 text-right whitespace-nowrap">금액</th>
+                    <th className="border p-2 text-left whitespace-nowrap">비고</th>
+                    <th className="border p-2 text-center whitespace-nowrap">관리</th>
                   </tr>
                 </thead>
                 <tbody>
                   {expenses.map((expense) => (
                     <tr key={expense.id} className="hover:bg-gray-50">
-                      <td className="border p-2">{formatDate(expense.date)}</td>
-                      <td className="border p-2">{expense.registrant.name}</td>
-                      <td className="border p-2">{expense.user.name}</td>
-                      <td className="border p-2 text-right">{formatAmount(expense.amount)}</td>
+                      <td className="border p-2 whitespace-nowrap">{formatDate(expense.date)}</td>
+                      <td className="border p-2 whitespace-nowrap">{expense.registrant.name}</td>
+                      <td className="border p-2 whitespace-nowrap">{expense.user.name}</td>
+                      <td className="border p-2 text-right whitespace-nowrap">{formatAmount(expense.amount)}</td>
                       <td className="border p-2">{expense.memo}</td>
-                      <td className="border p-2 text-center">
+                      <td className="border p-2 text-center whitespace-nowrap">
                         {expense.registrant.name === userName && (
                           <div className="flex justify-center gap-2">
                             <Button
                               onClick={() => router.push(`/expenses/${expense.id}/edit`)}
+                              className="text-sm px-2 py-1 h-8"
                             >
                               수정
                             </Button>
                             <Button
                               onClick={() => handleDelete(expense.id)}
-                              className="bg-red-500 hover:bg-red-600"
+                              className="text-sm px-2 py-1 h-8 bg-red-500 hover:bg-red-600"
                             >
                               삭제
                             </Button>
@@ -227,14 +231,14 @@ export default function ExpensesPage() {
                   ))}
                   {expenses.length > 0 && (
                     <tr className="bg-gray-100 font-semibold">
-                      <td colSpan={3} className="border p-2 text-right">총액</td>
-                      <td className="border p-2 text-right">{formatAmount(totalAmount)}</td>
-                      <td className="border p-2"></td>
+                      <td colSpan={3} className="border p-2 text-right whitespace-nowrap">총액</td>
+                      <td className="border p-2 text-right whitespace-nowrap">{formatAmount(totalAmount)}</td>
+                      <td colSpan={2} className="border p-2"></td>
                     </tr>
                   )}
                   {expenses.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="border p-2 text-center text-gray-500">
+                      <td colSpan={6} className="border p-2 text-center text-gray-500">
                         조회된 내역이 없습니다.
                       </td>
                     </tr>
@@ -244,7 +248,10 @@ export default function ExpensesPage() {
             </div>
 
             <div className="mt-6">
-              <Button onClick={() => router.push('/expenses/create')}>
+              <Button 
+                onClick={() => router.push('/expenses/create')}
+                className="w-full sm:w-auto"
+              >
                 새 내역 등록
               </Button>
             </div>

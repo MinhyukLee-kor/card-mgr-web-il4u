@@ -160,9 +160,8 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                 </Button>
                 <Button
                   type="button"
-                  variant="outline"
                   onClick={() => router.back()}
-                  className="flex-1"
+                  className="flex-1 border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
                 >
                   취소
                 </Button>
