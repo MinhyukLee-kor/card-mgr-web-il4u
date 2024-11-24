@@ -30,6 +30,7 @@ export default function ExpensesPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
 
@@ -127,24 +128,22 @@ export default function ExpensesPage() {
   useEffect(() => {
     const getUserFromCookie = () => {
       try {
-        // 쿠키 문자열 파싱
         const cookies = document.cookie.split(';').reduce((acc, cookie) => {
           const [key, value] = cookie.trim().split('=');
           acc[key] = value;
           return acc;
         }, {} as { [key: string]: string });
 
-        // user 쿠키 확인
         if (!cookies.user) {
           console.error('User cookie not found');
           return;
         }
 
-        // JSON 파싱
         const userData = JSON.parse(decodeURIComponent(cookies.user));
 
-        if (userData && userData.name) {
+        if (userData) {
           setUserName(userData.name);
+          setUserEmail(userData.email);
         }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
@@ -157,6 +156,11 @@ export default function ExpensesPage() {
   // 디버깅을 위한 로그
   useEffect(() => {
   }, [userName]);
+
+  // 등록자 확인 함수 수정
+  const isRegistrant = (registrantEmail: string) => {
+    return registrantEmail === userEmail;
+  };
 
   return (
     <>
@@ -279,10 +283,8 @@ export default function ExpensesPage() {
                     </thead>
                     <tbody className="bg-white">
                       {expenses.map((expense) => (
-                        // 각 사용자별로 행 생성
                         expense.users.map((user, userIndex) => (
                           <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
-                            {/* 첫 번째 사용자의 경우에만 날짜와 메모를 표시 */}
                             <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
                               {userIndex === 0 ? formatDate(expense.date).replace(/\s*년\s*|\s*월\s*|\s*일\s*/g, '.') : ''}
                             </td>
@@ -298,9 +300,8 @@ export default function ExpensesPage() {
                             <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm">
                               {userIndex === 0 ? (expense.isCardUsage ? '법인' : '개인') : ''}
                             </td>
-                            {/* 첫 번째 사용자의 경우에만 관리 버튼을 표시 */}
                             <td className="border p-1 sm:p-2 text-center">
-                              {userIndex === 0 && (
+                              {userIndex === 0 && isRegistrant(expense.registrant.email) && (
                                 <div className="flex justify-center gap-1">
                                   <Button
                                     onClick={() => router.push(`/expenses/${expense.id}/edit`)}
