@@ -31,6 +31,7 @@ export default function ExpensesPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
+  const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
 
   // 현재 달의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -65,6 +66,7 @@ export default function ExpensesPage() {
       if (startDate) params.append('startDate', startDate);
       if (endDate) params.append('endDate', endDate);
       if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
+      params.append('viewType', viewType);
 
       const response = await fetch(`/api/expenses?${params}`);
       const data = await response.json();
@@ -86,7 +88,7 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchExpenses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, isCardUsage]);
+  }, [startDate, endDate, isCardUsage, viewType]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('ko-KR');
@@ -223,6 +225,34 @@ export default function ExpensesPage() {
                     />
                     <span className={`text-sm ${isCardUsage === false ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
                       개인카드
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <span className="text-sm font-medium">조회 유형:</span>
+                <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={viewType === 'registrant'}
+                      onChange={() => setViewType('registrant')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${viewType === 'registrant' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      등록자
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={viewType === 'user'}
+                      onChange={() => setViewType('user')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${viewType === 'user' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      사용자
                     </span>
                   </label>
                 </div>

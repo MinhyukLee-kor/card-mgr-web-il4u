@@ -17,10 +17,17 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate') || undefined;
     const endDate = searchParams.get('endDate') || undefined;
     const isCardUsage = searchParams.get('isCardUsage');
+    const viewType = searchParams.get('viewType') || 'registrant';
     
     const isCardUsageBoolean = isCardUsage === null ? undefined : isCardUsage === 'true';
 
-    const expenses = await getExpenses(user.email, startDate, endDate, isCardUsageBoolean);
+    const expenses = await getExpenses(
+      user.email, 
+      startDate, 
+      endDate, 
+      isCardUsageBoolean,
+      viewType as 'registrant' | 'user'
+    );
 
     return NextResponse.json({ expenses });
   } catch (error) {

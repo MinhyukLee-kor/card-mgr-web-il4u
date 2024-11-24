@@ -134,11 +134,27 @@ export const createExpense = async (expense: ExpenseForm, registrant: { email: s
 };
 
 // 사용 내역 조회 (마스터/디테일 조인)
-export const getExpenses = async (email: string, startDate?: string, endDate?: string, isCardUsage?: boolean) => {
+export const getExpenses = async (
+  userEmail: string,
+  startDate?: string,
+  endDate?: string,
+  isCardUsage?: boolean,
+  viewType: 'registrant' | 'user' = 'registrant'
+) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    // 마스터 데이터 조회
+    // 먼저 사용자 정보를 조회하여 이름 가져오기
+    const userResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용자!A2:E',
+    });
+    
+    const users = userResponse.data.values || [];
+    const currentUser = users.find(user => user[0] === userEmail);
+    const userName = currentUser ? currentUser[1] : '';
+
+    // 마스터와 디테일 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
       range: '사용내역마스터!A2:G',
@@ -156,41 +172,82 @@ export const getExpenses = async (email: string, startDate?: string, endDate?: s
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    // 등록자 본인의 내역만 필터링
-    return masters
-      .filter(master => {
-        const rowDate = new Date(master[1]);
-        const isDateInRange = rowDate >= start && rowDate <= end;
-        const isRegistrantMatch = master[5] === email;
-        const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
-          ? true 
-          : (master[6] === 'TRUE') === isCardUsage;
+    if (viewType === 'registrant') {
+      // 등록자 기준 조회 (기존 로직)
+      return masters
+        .filter(master => {
+          const rowDate = new Date(master[1]);
+          const isDateInRange = rowDate >= start && rowDate <= end;
+          const isRegistrantMatch = master[5] === userEmail;
+          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
+            ? true 
+            : (master[6] === 'TRUE') === isCardUsage;
 
-        return isDateInRange && isRegistrantMatch && isCardUsageMatch;
-      })
-      .map(master => {
-        // 해당 마스터 ID의 디테일 데이터 찾기
-        const userDetails = details
-          .filter(detail => detail[0] === master[0])
-          .map(detail => ({
-            name: detail[1],
+          return isDateInRange && isRegistrantMatch && isCardUsageMatch;
+        })
+        .map(master => {
+          const userDetails = details
+            .filter(detail => detail[0] === master[0])
+            .map(detail => ({
+              name: detail[1],
+              amount: parseInt(detail[2])
+            }));
+
+          return {
+            id: master[0],
+            date: master[1],
+            registrant: {
+              name: master[2],
+              email: master[5]
+            },
+            amount: parseInt(master[3]),
+            memo: master[4],
+            isCardUsage: master[6] === 'TRUE',
+            users: userDetails
+          };
+        });
+    } else {
+      // 사용자 기준 조회 (디테일 테이블 기준)
+      const userDetails = details
+        .filter(detail => detail[1] === userName) // 이메일 대신 이름으로 필터링
+        .map(detail => {
+          const masterId = detail[0];
+          const masterData = masters.find(m => m[0] === masterId);
+          
+          if (!masterData) return null;
+
+          const rowDate = new Date(masterData[1]);
+          const isDateInRange = rowDate >= start && rowDate <= end;
+          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
+            ? true 
+            : (masterData[6] === 'TRUE') === isCardUsage;
+
+          if (!isDateInRange || !isCardUsageMatch) return null;
+
+          // 현재 사용자의 내역만 포함
+          const userDetail = {
+            name: userName,
             amount: parseInt(detail[2])
-          }));
+          };
 
-        return {
-          id: master[0],
-          date: master[1],
-          registrant: {
-            name: master[2],
-            email: master[5]
-          },
-          amount: parseInt(master[3]),
-          memo: master[4],
-          isCardUsage: master[6] === 'TRUE',
-          users: userDetails
-        };
-      })
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          return {
+            id: masterId,
+            date: masterData[1],
+            registrant: {
+              name: masterData[2],
+              email: masterData[5]
+            },
+            amount: parseInt(detail[2]), // 사용자 본인의 금액만 표시
+            memo: masterData[4],
+            isCardUsage: masterData[6] === 'TRUE',
+            users: [userDetail] // 현재 사용자의 내역만 포함
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      return userDetails;
+    }
   } catch (error) {
     console.error('사용 내역 조회 중 오류 발생:', error);
     throw error;
