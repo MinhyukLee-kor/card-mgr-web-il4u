@@ -92,7 +92,11 @@ export default function ExpensesPage() {
   }, [startDate, endDate, isCardUsage, viewType]);
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('ko-KR');
+    const date = new Date(dateString);
+    const year = date.getFullYear().toString().slice(2); // 연도에서 뒤의 2자리만 사용
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   };
 
   const formatAmount = (amount: number) => {
@@ -180,14 +184,22 @@ export default function ExpensesPage() {
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
                     placeholder="시작일"
-                    className="w-full text-xs sm:text-sm"
+                    className="w-full text-xs sm:text-sm appearance-none"
+                    style={{
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none'
+                    }}
                   />
                   <Input
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
                     placeholder="종료일"
-                    className="w-full text-xs sm:text-sm"
+                    className="w-full text-xs sm:text-sm appearance-none"
+                    style={{
+                      WebkitAppearance: 'none',
+                      MozAppearance: 'none'
+                    }}
                   />
                 </div>
                 <Button onClick={fetchExpenses} className="shrink-0">
@@ -268,8 +280,14 @@ export default function ExpensesPage() {
             )}
 
             <div className="relative border rounded-lg">
-              <div className="overflow-x-auto">
-                <div style={{ maxHeight: 'calc(100vh - 700px)' }} className="overflow-y-auto min-h-[300px]">
+              <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
+                <div 
+                  style={{ 
+                    maxHeight: 'calc(100vh - 700px)',
+                    WebkitOverflowScrolling: 'touch'
+                  }} 
+                  className="overflow-y-auto min-h-[300px]"
+                >
                   <table className="w-full border-collapse">
                     <thead className="sticky top-0 bg-white z-10">
                       <tr className="bg-gray-100">
@@ -286,7 +304,7 @@ export default function ExpensesPage() {
                         expense.users.map((user, userIndex) => (
                           <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
                             <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
-                              {userIndex === 0 ? formatDate(expense.date).replace(/\s*년\s*|\s*월\s*|\s*일\s*/g, '.') : ''}
+                              {userIndex === 0 ? formatDate(expense.date) : ''}
                             </td>
                             <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
                               {user.name}
@@ -351,6 +369,9 @@ export default function ExpensesPage() {
       <Button
         onClick={() => router.push('/expenses/create')}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl"
+        style={{
+          WebkitTapHighlightColor: 'transparent'
+        }}
         title="새 내역 등록"
       >
         <Plus className="h-6 w-6" />

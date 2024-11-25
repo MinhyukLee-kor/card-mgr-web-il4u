@@ -173,7 +173,7 @@ export const getExpenses = async (
     const end = endDate ? new Date(endDate) : new Date();
 
     if (viewType === 'registrant') {
-      // 등록자 기준 조회 (기존 로직)
+      // 등록자 기준 조회
       return masters
         .filter(master => {
           const rowDate = new Date(master[1]);
@@ -205,7 +205,8 @@ export const getExpenses = async (
             isCardUsage: master[6] === 'TRUE',
             users: userDetails
           };
-        });
+        })
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     } else {
       // 사용자 기준 조회 (디테일 테이블 기준)
       const userDetails = details
