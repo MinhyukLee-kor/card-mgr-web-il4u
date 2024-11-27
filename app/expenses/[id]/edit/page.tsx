@@ -110,7 +110,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 수정</CardTitle>
-            <CardDescription>법인카드 사용 내역을 수정하세요.</CardDescription>
+            <CardDescription>카드 사용 내역을 수정하세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

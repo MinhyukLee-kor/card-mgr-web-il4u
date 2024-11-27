@@ -8,8 +8,8 @@ import { headers } from 'next/headers';
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "법인카드 사용내역 관리",
-  description: "법인카드 사용 내역을 관리하는 웹 애플리케이션",
+  title: "카드 사용내역 관리",
+  description: "카드 사용 내역을 관리하는 웹 애플리케이션",
   manifest: '/manifest.json',
   themeColor: '#FFFFFF',
   viewport: {

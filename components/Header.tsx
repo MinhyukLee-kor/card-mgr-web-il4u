@@ -51,7 +51,7 @@ export default function Header() {
       <div className="container mx-auto px-4 py-2 sm:py-0">
         <div className="relative flex items-center justify-between h-16">
           <div className="flex flex-col justify-center">
-            <div className="font-semibold text-lg">법인카드 사용내역 관리</div>
+            <div className="font-semibold text-lg">카드 사용내역 관리</div>
             {userName && (
               <div className="text-sm text-gray-600">
                 환영합니다. {userName}님
