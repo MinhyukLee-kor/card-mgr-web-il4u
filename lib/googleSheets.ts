@@ -71,7 +71,15 @@ export const getAllUsers = async () => {
     if (!rows) return [];
 
     return rows
-      .filter(row => row[4] === 'TRUE') // 활성 사용자만 필터링
+      .filter(row => 
+        // 빈 행 제외
+        row.length >= 2 && 
+        // 이메일과 이름이 있는 행만
+        row[0]?.trim() && 
+        row[1]?.trim() && 
+        // 활성 사용자만 (isActive가 TRUE인 경우)
+        (row[4] === 'TRUE' || row[4] === true)
+      )
       .map(row => ({
         email: row[0],
         name: row[1],
