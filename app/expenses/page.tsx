@@ -174,6 +174,7 @@ export default function ExpensesPage() {
           <CardHeader>
             <CardTitle>사용 내역 조회</CardTitle>
             <CardDescription>카드 사용 내역을 조회합니다.</CardDescription>
+            <CardDescription className="text-red-500">자신이 결제한 내역만 등록해주세요.</CardDescription>
           </CardHeader>
           <CardContent className="p-3">
             <div className="flex flex-col gap-4 mb-6">
