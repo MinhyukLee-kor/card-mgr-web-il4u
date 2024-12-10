@@ -4,7 +4,7 @@ import { getAllUsers } from '@/lib/googleSheets';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const users = await getAllUsers();
     return NextResponse.json(

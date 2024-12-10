@@ -29,14 +29,20 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           cache: 'no-store',
           headers: {
             'Pragma': 'no-cache',
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
           }
         });
         const usersData = await usersResponse.json();
         setUserOptions(usersData.users);
 
         // 기존 내역 조회
-        const expenseResponse = await fetch(`/api/expenses/${params.id}`);
+        const expenseResponse = await fetch(`/api/expenses/${params.id}`, {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-store, no-cache, must-revalidate'
+          }
+        });
         const expenseData = await expenseResponse.json();
         
         if (expenseResponse.ok) {
@@ -84,6 +90,8 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
+          'Pragma': 'no-cache',
+          'Cache-Control': 'no-store, no-cache, must-revalidate'
         },
         body: JSON.stringify({
           ...data,
@@ -127,7 +135,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                   className="w-full"
                 />
                 {errors.date && (
-                  <span className="text-sm text-red-500">날짜를 선택하세요.</span>
+                  <span className="text-sm text-red-500">날짜를 선택하���요.</span>
                 )}
               </div>
 
