@@ -25,7 +25,13 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
       try {
         setIsLoading(true);
         // 사용자 목록 조회
-        const usersResponse = await fetch('/api/users');
+        const usersResponse = await fetch('/api/users', {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          }
+        });
         const usersData = await usersResponse.json();
         setUserOptions(usersData.users);
 

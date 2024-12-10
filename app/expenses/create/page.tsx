@@ -50,23 +50,19 @@ export default function CreateExpensePage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch('/api/users');
+        const response = await fetch('/api/users', {
+          cache: 'no-store',
+          headers: {
+            'Pragma': 'no-cache',
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+          }
+        });
         const data = await response.json();
-        setUserOptions(data.users);
-
-        // 현재 사용자가 있으면 첫 번째 사용자로 설정
-        if (currentUser) {
-          setUsers([{ 
-            email: currentUser.email, 
-            name: currentUser.name, 
-            amount: 0 
-          }]);
-        }
+        if (!response.ok) throw new Error(data.message);
+        setUsers(data.users);
       } catch (error) {
-        console.error('사용자 목록 조회 실패:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('사용자 목록 조회 중 오류 발생:', error);
+        setError('사용자 목록을 불러오는데 실패했습니다.');
       }
     };
 
@@ -286,7 +282,7 @@ export default function CreateExpensePage() {
 
               <div className="space-y-2">
                 <Input
-                  placeholder="사용내역"
+                  placeholder="��용내역"
                   {...register('memo')}
                   className="w-full"
                 />
