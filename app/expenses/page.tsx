@@ -34,7 +34,7 @@ export default function ExpensesPage() {
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
 
-  // 현재 달의 시작일과 마지막 날을 계산
+  // 현�� 달의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
     const now = new Date();
     // 현재 달의 1일
@@ -303,19 +303,19 @@ export default function ExpensesPage() {
                       {expenses.map((expense) => (
                         expense.users.map((user, userIndex) => (
                           <tr key={`${expense.id}-${userIndex}`} className="hover:bg-gray-50">
-                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm text-center">
                               {userIndex === 0 ? formatDate(expense.date) : ''}
                             </td>
-                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm">
+                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm text-center">
                               {user.name}
                             </td>
-                            <td className="border p-1 sm:p-2 text-right whitespace-nowrap text-xs sm:text-sm">
+                            <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm text-right">
                               {formatAmount(user.amount)}
                             </td>
-                            <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm max-w-[100px] truncate">
+                            <td className="border p-1 sm:p-2 text-xs sm:text-sm text-center max-w-[100px] truncate">
                               {userIndex === 0 ? expense.memo : ''}
                             </td>
-                            <td className="border p-1 sm:p-2 text-center text-xs sm:text-sm">
+                            <td className="border p-1 sm:p-2 text-xs sm:text-sm text-center">
                               {userIndex === 0 ? (expense.isCardUsage ? '법인' : '개인') : ''}
                             </td>
                             <td className="border p-1 sm:p-2 text-center">

@@ -147,7 +147,8 @@ export const getExpenses = async (
   startDate?: string,
   endDate?: string,
   isCardUsage?: boolean,
-  viewType: 'registrant' | 'user' = 'registrant'
+  viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
+  selectedUser?: string
 ) => {
   const sheets = getGoogleSheetClient();
   
@@ -180,7 +181,95 @@ export const getExpenses = async (
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    if (viewType === 'registrant') {
+    if (viewType === 'admin-summary') {
+      // 먼저 모든 활성 사용자 목록을 가져옴
+      const activeUsers = users
+        .filter(user => user[4] === 'TRUE') // isActive가 TRUE인 사용자만
+        .map(user => user[1]); // 사용자 이름만 추출
+
+      // 선택된 사용자가 있으면 해당 사용자만 포함
+      const targetUsers = selectedUser ? activeUsers.filter(name => name === selectedUser) : activeUsers;
+
+      // 사용자별 합계 계산
+      const userSummary = details
+        .reduce((acc: { [key: string]: number }, detail) => {
+          const masterId = detail[0];
+          const masterData = masters.find(m => m[0] === masterId);
+          
+          if (!masterData) return acc;
+
+          const rowDate = new Date(masterData[1]);
+          const isDateInRange = rowDate >= start && rowDate <= end;
+          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
+            ? true 
+            : (masterData[6] === 'TRUE') === isCardUsage;
+
+          if (!isDateInRange || !isCardUsageMatch) return acc;
+
+          const userName = detail[1];
+          const amount = parseInt(detail[2]);
+          
+          acc[userName] = (acc[userName] || 0) + amount;
+          return acc;
+        }, {});
+
+      // 모든 활성 사용자에 대해 결과 생성 (사용 내역이 없는 경우 0원으로 표시)
+      return targetUsers.map(userName => ({
+        id: userName,
+        date: '',
+        registrant: {
+          name: '',
+          email: ''
+        },
+        amount: userSummary[userName] || 0,
+        memo: '',
+        isCardUsage: false,
+        users: [{
+          name: userName,
+          amount: userSummary[userName] || 0
+        }]
+      }))
+      .sort((a, b) => b.amount - a.amount); // 금액 기준 내림차순 정렬
+
+    } else if (viewType === 'admin') {
+      // 관리자는 모든 디테일 내역 조회
+      const allDetails = details
+        .filter(detail => !selectedUser || detail[1] === selectedUser) // 선택된 사용자 필터링
+        .map(detail => {
+          const masterId = detail[0];
+          const masterData = masters.find(m => m[0] === masterId);
+          
+          if (!masterData) return null;
+
+          const rowDate = new Date(masterData[1]);
+          const isDateInRange = rowDate >= start && rowDate <= end;
+          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
+            ? true 
+            : (masterData[6] === 'TRUE') === isCardUsage;
+
+          if (!isDateInRange || !isCardUsageMatch) return null;
+
+          return {
+            id: masterId,
+            date: masterData[1],
+            registrant: {
+              name: masterData[2],
+              email: masterData[5]
+            },
+            amount: parseInt(detail[2]), // 개별 사용자 금액
+            memo: masterData[4],
+            isCardUsage: masterData[6] === 'TRUE',
+            users: [{
+              name: detail[1],
+              amount: parseInt(detail[2])
+            }]
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      return allDetails;
+    } else if (viewType === 'registrant') {
       // 등록자 기준 조회
       return masters
         .filter(master => {
@@ -340,7 +429,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
 
     return id;
   } catch (error) {
-    console.error('사용 내역 수정 중 오류 발생:', error);
+    console.error('사용 내역 수�� 중 오류 발생:', error);
     throw error;
   }
 };

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
+import { Header } from "@/components/Header";
 import { InstallPWA } from "@/components/InstallPWA";
 import { headers } from 'next/headers';
 

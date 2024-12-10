@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || undefined;
     const isCardUsage = searchParams.get('isCardUsage');
     const viewType = searchParams.get('viewType') || 'registrant';
+    const selectedUser = searchParams.get('selectedUser') || undefined;
     
     const isCardUsageBoolean = isCardUsage === null ? undefined : isCardUsage === 'true';
 
@@ -35,7 +36,8 @@ export async function GET(request: NextRequest) {
       startDate, 
       endDate, 
       isCardUsageBoolean,
-      viewType as 'registrant' | 'user'
+      viewType as 'registrant' | 'user' | 'admin' | 'admin-summary',
+      selectedUser
     );
 
     return NextResponse.json(
