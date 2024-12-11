@@ -24,6 +24,8 @@ interface Expense {
   }[];
 }
 
+type MealType = 'all' | 'lunch' | 'dinner';
+
 export default function ExpensesPage() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -32,7 +34,7 @@ export default function ExpensesPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
-  const [excludeDinner, setExcludeDinner] = useState(false);
+  const [mealType, setMealType] = useState<MealType>('all');
 
   // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -68,7 +70,7 @@ export default function ExpensesPage() {
       if (endDate) params.append('endDate', endDate);
       if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
       params.append('viewType', viewType);
-      params.append('excludeDinner', excludeDinner.toString());
+      params.append('mealType', mealType);
 
       const response = await fetch(`/api/expenses?${params}`);
       const data = await response.json();
@@ -88,7 +90,7 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchExpenses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, isCardUsage, viewType, excludeDinner]);
+  }, [startDate, endDate, isCardUsage, viewType, mealType]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -245,15 +247,42 @@ export default function ExpensesPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={!excludeDinner}
-                    onChange={(e) => setExcludeDinner(!e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-600">저녁 포함</span>
-                </label>
+                <span className="text-sm font-medium">사용내역:</span>
+                <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'all'}
+                      onChange={() => setMealType('all')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      전체
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'lunch'}
+                      onChange={() => setMealType('lunch')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'lunch' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      점심
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'dinner'}
+                      onChange={() => setMealType('dinner')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'dinner' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      저녁
+                    </span>
+                  </label>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">

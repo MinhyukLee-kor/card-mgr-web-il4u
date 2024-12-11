@@ -27,6 +27,8 @@ interface UserOption {
   name: string;
 }
 
+type MealType = 'all' | 'lunch' | 'dinner';
+
 export default function AdminExpensesPage() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
@@ -36,6 +38,7 @@ export default function AdminExpensesPage() {
   const [viewType, setViewType] = useState<'date' | 'summary'>('date');
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>('');
+  const [mealType, setMealType] = useState<MealType>('all');
 
   // 현재 달의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -80,7 +83,7 @@ export default function AdminExpensesPage() {
     fetchUsers();
   }, []);
 
-  // 권한 체크 및 데이터 조회
+  // 권�� 체크 및 데이터 조회
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -91,6 +94,7 @@ export default function AdminExpensesPage() {
         if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
         if (selectedUser) params.append('selectedUser', selectedUser);
         params.append('viewType', viewType === 'date' ? 'admin' : 'admin-summary');
+        params.append('mealType', mealType);
 
         const response = await fetch(`/api/expenses?${params}`, {
           headers: {
@@ -118,7 +122,7 @@ export default function AdminExpensesPage() {
     };
 
     fetchData();
-  }, [router, startDate, endDate, isCardUsage, viewType, selectedUser]);
+  }, [router, startDate, endDate, isCardUsage, viewType, selectedUser, mealType]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -231,6 +235,45 @@ export default function AdminExpensesPage() {
                     />
                     <span className={`text-sm ${isCardUsage === false ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
                       개인카드
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <span className="text-sm font-medium">사용내역:</span>
+                <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'all'}
+                      onChange={() => setMealType('all')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      전체
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'lunch'}
+                      onChange={() => setMealType('lunch')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'lunch' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      점심
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      checked={mealType === 'dinner'}
+                      onChange={() => setMealType('dinner')}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${mealType === 'dinner' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      저녁
                     </span>
                   </label>
                 </div>

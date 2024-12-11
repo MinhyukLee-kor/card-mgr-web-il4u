@@ -149,7 +149,7 @@ export const getExpenses = async (
   isCardUsage?: boolean,
   viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
   selectedUser?: string,
-  excludeDinner: boolean = false
+  mealType: 'all' | 'lunch' | 'dinner' = 'all'
 ) => {
   const sheets = getGoogleSheetClient();
   
@@ -182,11 +182,12 @@ export const getExpenses = async (
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    // 각 viewType의 filter 조건에 저녁 제외 조건 추가
-    const dinnerFilter = (memo: string | undefined) => {
-      if (!excludeDinner) return true;
-      if (!memo) return true;
-      return !memo.includes('저녁');
+    // 식사 유형 필터 함수 수정
+    const mealFilter = (memo: string | undefined) => {
+      if (mealType === 'all') return true;
+      if (!memo) return mealType === 'lunch';
+      if (mealType === 'dinner') return memo.includes('저녁');
+      return !memo.includes('저녁'); // lunch인 경우
     };
 
     if (viewType === 'admin-summary') {
@@ -211,8 +212,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
+          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch) return acc;
+          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return acc;
 
           const userName = detail[1];
           const amount = parseInt(detail[2]);
@@ -242,7 +244,7 @@ export const getExpenses = async (
     } else if (viewType === 'admin') {
       // 관리자는 모든 디테일 내역 조회
       const allDetails = details
-        .filter(detail => !selectedUser || detail[1] === selectedUser) // 선택된 사용자 필터링
+        .filter(detail => !selectedUser || detail[1] === selectedUser)
         .map(detail => {
           const masterId = detail[0];
           const masterData = masters.find(m => m[0] === masterId);
@@ -254,8 +256,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
+          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch) return null;
+          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return null;
 
           return {
             id: masterId,
@@ -264,7 +267,7 @@ export const getExpenses = async (
               name: masterData[2],
               email: masterData[5]
             },
-            amount: parseInt(detail[2]), // 개별 사용자 금액
+            amount: parseInt(detail[2]),
             memo: masterData[4],
             isCardUsage: masterData[6] === 'TRUE',
             users: [{
@@ -287,9 +290,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (master[6] === 'TRUE') === isCardUsage;
-          const isDinnerMatch = dinnerFilter(master[4]); // 저녁 필터 추가
+          const isMealMatch = mealFilter(master[4]); // 저녁 필터 추가
 
-          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isDinnerMatch;
+          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isMealMatch;
         })
         .map(master => {
           const userDetails = details
@@ -328,9 +331,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isDinnerMatch = dinnerFilter(masterData[4]); // 저녁 필터 추가
+          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch || !isDinnerMatch) return null; // 저녁 필터 조건 추가
+          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return null; // 저녁 필터 조건 추가
 
           // 현재 사용자의 내역만 포함
           const userDetail = {
@@ -367,7 +370,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
   const sheets = getGoogleSheetClient();
   
   try {
-    // 총액 계���
+    // 총액 계산
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
     // 1. 마스터 데이터 수정
@@ -413,7 +416,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
       return acc;
     }, []);
 
-    // 디테일 데이터 삭제 (각 행을 빈 값으로 업데이트)
+    // 디���일 데이터 삭제 (각 행을 빈 값으로 업데이트)
     for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
