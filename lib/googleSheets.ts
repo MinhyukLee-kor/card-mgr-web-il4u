@@ -148,7 +148,8 @@ export const getExpenses = async (
   endDate?: string,
   isCardUsage?: boolean,
   viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
-  selectedUser?: string
+  selectedUser?: string,
+  excludeDinner: boolean = false
 ) => {
   const sheets = getGoogleSheetClient();
   
@@ -180,6 +181,13 @@ export const getExpenses = async (
     // 날짜 필터링을 위한 시작일과 종료일
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
+
+    // 각 viewType의 filter 조건에 저녁 제외 조건 추가
+    const dinnerFilter = (memo: string | undefined) => {
+      if (!excludeDinner) return true;
+      if (!memo) return true;
+      return !memo.includes('저녁');
+    };
 
     if (viewType === 'admin-summary') {
       // 먼저 모든 활성 사용자 목록을 가져옴
@@ -279,8 +287,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (master[6] === 'TRUE') === isCardUsage;
+          const isDinnerMatch = dinnerFilter(master[4]); // 저녁 필터 추가
 
-          return isDateInRange && isRegistrantMatch && isCardUsageMatch;
+          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isDinnerMatch;
         })
         .map(master => {
           const userDetails = details
@@ -319,8 +328,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
+          const isDinnerMatch = dinnerFilter(masterData[4]); // 저녁 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch) return null;
+          if (!isDateInRange || !isCardUsageMatch || !isDinnerMatch) return null; // 저녁 필터 조건 추가
 
           // 현재 사용자의 내역만 포함
           const userDetail = {
@@ -357,7 +367,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
   const sheets = getGoogleSheetClient();
   
   try {
-    // 총액 계산
+    // 총액 계���
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
     // 1. 마스터 데이터 수정
@@ -429,7 +439,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
 
     return id;
   } catch (error) {
-    console.error('사용 내역 수�� 중 오류 발생:', error);
+    console.error('사용 내역 수정 중 오류 발생:', error);
     throw error;
   }
 };

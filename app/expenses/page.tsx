@@ -33,6 +33,7 @@ export default function ExpensesPage() {
   const [userEmail, setUserEmail] = useState<string>('');
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
+  const [excludeDinner, setExcludeDinner] = useState(false);
 
   // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -68,6 +69,7 @@ export default function ExpensesPage() {
       if (endDate) params.append('endDate', endDate);
       if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
       params.append('viewType', viewType);
+      params.append('excludeDinner', excludeDinner.toString());
 
       const response = await fetch(`/api/expenses?${params}`);
       const data = await response.json();
@@ -89,7 +91,7 @@ export default function ExpensesPage() {
   useEffect(() => {
     fetchExpenses();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, isCardUsage, viewType]);
+  }, [startDate, endDate, isCardUsage, viewType, excludeDinner]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -245,6 +247,18 @@ export default function ExpensesPage() {
                     </span>
                   </label>
                 </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!excludeDinner}
+                    onChange={(e) => setExcludeDinner(!e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-600">저녁 포함</span>
+                </label>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
