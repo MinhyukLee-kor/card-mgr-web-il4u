@@ -62,7 +62,13 @@ export default function CreateExpensePage() {
           }
         });
         const data = await response.json();
-        setUserOptions(data.users);
+        
+        // 사용자 목록을 이름 기준으로 정렬
+        const sortedUsers = [...data.users].sort((a, b) => 
+          a.name.localeCompare(b.name, 'ko')
+        );
+        
+        setUserOptions(sortedUsers);
 
         // 현재 사용자가 있으면 첫 번째 사용자로 설정
         if (currentUser) {

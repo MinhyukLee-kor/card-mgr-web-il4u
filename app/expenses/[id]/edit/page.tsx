@@ -36,7 +36,13 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           }
         });
         const usersData = await usersResponse.json();
-        setUserOptions(usersData.users);
+        
+        // 사용자 목록을 이름 기준으로 정렬
+        const sortedUsers = [...usersData.users].sort((a, b) => 
+          a.name.localeCompare(b.name, 'ko')
+        );
+        
+        setUserOptions(sortedUsers);
 
         // 기존 내역 조회
         const expenseResponse = await fetch(`/api/expenses/${params.id}`, {

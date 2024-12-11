@@ -286,7 +286,14 @@ export const getExpenses = async (
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+          // 1. 날짜 기준 내림차순
+          const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          
+          // 2. 날짜가 같으면 사용내역 기준 오름차순
+          return (a.memo || '').localeCompare(b.memo || '', 'ko');
+        });
 
       return allDetails;
     } else if (viewType === 'registrant') {
@@ -324,7 +331,14 @@ export const getExpenses = async (
             users: userDetails
           };
         })
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+          // 1. 날짜 기준 내림차순
+          const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          
+          // 2. 날짜가 같으면 사용내역 기준 오름차순
+          return (a.memo || '').localeCompare(b.memo || '', 'ko');
+        });
     } else {
       // 사용자 기준 조회 (디테일 테이블 기준)
       const userDetails = details
@@ -364,7 +378,14 @@ export const getExpenses = async (
           };
         })
         .filter((item): item is NonNullable<typeof item> => item !== null)
-        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        .sort((a, b) => {
+          // 1. 날짜 기준 내림차순
+          const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
+          if (dateCompare !== 0) return dateCompare;
+          
+          // 2. 날짜가 같으면 사용내역 기준 오름차순
+          return (a.memo || '').localeCompare(b.memo || '', 'ko');
+        });
 
       return userDetails;
     }
@@ -451,7 +472,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
 
     return id;
   } catch (error) {
-    console.error('사용 내역 수정 중 오류 발생:', error);
+    console.error('사용 내역 수정 중 오류 ���생:', error);
     throw error;
   }
 };
