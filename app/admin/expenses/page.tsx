@@ -83,7 +83,7 @@ export default function AdminExpensesPage() {
     fetchUsers();
   }, []);
 
-  // 권�� 체크 및 데이터 조회
+  // 권한 체크 및 데이터 조회
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -329,12 +329,14 @@ export default function AdminExpensesPage() {
                       </tr>
                     </thead>
                     <tbody className="bg-white">
-                      {expenses.map((expense) => (
+                      {expenses.map((expense, index) => (
                         <tr key={`${expense.id}-${expense.users[0]?.name}`} className="hover:bg-gray-50">
                           {viewType === 'date' ? (
                             <>
                               <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm text-center">
-                                {formatDate(expense.date)}
+                                {index === 0 || formatDate(expense.date) !== formatDate(expenses[index - 1].date)
+                                  ? formatDate(expense.date)
+                                  : ''}
                               </td>
                               <td className="border p-1 sm:p-2 whitespace-nowrap text-xs sm:text-sm text-center">
                                 {expense.users[0]?.name}
