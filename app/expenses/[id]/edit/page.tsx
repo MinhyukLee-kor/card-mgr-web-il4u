@@ -198,7 +198,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                   className="w-full"
                 />
                 <p className="text-xs text-red-500">
-                  저녁식대의 경우 "저녁" 문구를 포함해서 작성해주세요
+                  저녁식대의 경우 &quot;저녁&quot; 문구를 포함해서 작성해주세요
                 </p>
               </div>
 

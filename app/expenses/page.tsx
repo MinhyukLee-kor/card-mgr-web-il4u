@@ -27,7 +27,6 @@ interface Expense {
 export default function ExpensesPage() {
   const router = useRouter();
   const [expenses, setExpenses] = useState<Expense[]>([]);
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [userName, setUserName] = useState<string>('');
   const [userEmail, setUserEmail] = useState<string>('');
@@ -75,14 +74,12 @@ export default function ExpensesPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.message);
         return;
       }
 
       setExpenses(data.expenses);
     } catch (error) {
       console.error('사용 내역 조회 중 오류 발생:', error);
-      setError('사용 내역 조회 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -118,14 +115,12 @@ export default function ExpensesPage() {
       });
 
       if (!response.ok) {
-        const data = await response.json();
-        setError(data.message);
         return;
       }
 
       fetchExpenses(); // 목록 새로고침
     } catch (error) {
-      setError('삭제 처리 중 오류가 발생했습니다.');
+      console.error('삭제 처리 중 오류가 발생했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -289,10 +284,6 @@ export default function ExpensesPage() {
                 </div>
               </div>
             </div>
-
-            {error && (
-              <div className="text-red-500 mb-4">{error}</div>
-            )}
 
             <div className="relative border rounded-lg">
               <div className="overflow-x-auto -webkit-overflow-scrolling-touch">
