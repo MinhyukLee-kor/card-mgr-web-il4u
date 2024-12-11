@@ -149,10 +149,11 @@ export const getExpenses = async (
   isCardUsage?: boolean,
   viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
   selectedUser?: string,
-  mealType: 'all' | 'lunch' | 'dinner' = 'all'
+  expenseType?: string,
+  searchKeyword?: string
 ) => {
   const sheets = getGoogleSheetClient();
-  
+
   try {
     // 먼저 사용자 정보를 조회하여 이름 가져오기
     const userResponse = await sheets.spreadsheets.values.get({
@@ -182,12 +183,20 @@ export const getExpenses = async (
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    // 식사 유형 필터 함수 수정
-    const mealFilter = (memo: string | undefined) => {
-      if (mealType === 'all') return true;
-      if (!memo) return mealType === 'lunch';
-      if (mealType === 'dinner') return memo.includes('저녁');
-      return !memo.includes('저녁'); // lunch인 경우
+    // 사용내역 필터 함수 수정
+    const memoFilter = (memo: string | undefined) => {
+      if (!expenseType || expenseType === '전체') return true;
+      if (!memo) return false;
+      
+      if (expenseType === '기타') {
+        // 검색어가 없으면 false 반환 (아무것도 조회하지 않음)
+        if (!searchKeyword) return false;
+        // 대소문자 구분 없이 검색어 포함 여부 확인
+        return memo.toLowerCase().includes(searchKeyword.toLowerCase());
+      }
+      
+      // 정확히 일치하는 경우만 반환
+      return memo === expenseType;
     };
 
     if (viewType === 'admin-summary') {
@@ -197,7 +206,7 @@ export const getExpenses = async (
         .map(user => user[1]); // 사용자 이름만 추출
 
       // 선택된 사용자가 있으면 해당 사용자만 포함
-      const targetUsers = selectedUser ? activeUsers.filter(name => name === selectedUser) : activeUsers;
+      const targetUsers = selectedUser ? [selectedUser] : activeUsers;
 
       // 사용자별 합계 계산
       const userSummary = details
@@ -212,9 +221,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
+          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return acc;
+          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return acc;
 
           const userName = detail[1];
           const amount = parseInt(detail[2]);
@@ -256,9 +265,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
+          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return null;
+          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
 
           return {
             id: masterId,
@@ -290,9 +299,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (master[6] === 'TRUE') === isCardUsage;
-          const isMealMatch = mealFilter(master[4]); // 저녁 필터 추가
+          const isMemoMatch = memoFilter(master[4]); // 사용내역 필터 추가
 
-          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isMealMatch;
+          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isMemoMatch;
         })
         .map(master => {
           const userDetails = details
@@ -331,9 +340,9 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMealMatch = mealFilter(masterData[4]); // 저녁 필터 추가
+          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
 
-          if (!isDateInRange || !isCardUsageMatch || !isMealMatch) return null; // 저녁 필터 조건 추가
+          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
 
           // 현재 사용자의 내역만 포함
           const userDetail = {
@@ -416,7 +425,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
       return acc;
     }, []);
 
-    // 디���일 데이터 삭제 (각 행을 빈 값으로 업데이트)
+    // 디테일 데이터 삭제 (각 행을 빈 값으로 업데이트)
     for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,

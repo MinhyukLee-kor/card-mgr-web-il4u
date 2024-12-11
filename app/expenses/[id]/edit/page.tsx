@@ -11,6 +11,8 @@ import { Loading } from "@/components/ui/loading";
 import { ArrowLeft } from 'lucide-react';
 import { formatAmount, parseAmount } from "@/lib/utils";
 
+type ExpenseType = '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
+
 export default function EditExpensePage({ params }: { params: { id: string } }) {
   const router = useRouter();
   const [users, setUsers] = useState<ExpenseShare[]>([]);
@@ -18,6 +20,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
   const [error, setError] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [isCardUsage, setIsCardUsage] = useState(false);
+  const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
 
   useEffect(() => {
@@ -51,6 +54,9 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           setValue('memo', expense.memo);
           setUsers(expense.users);
           setIsCardUsage(expense.isCardUsage);
+          const type = ['점심식대', '저녁식대', '차대', '휴일근무'].find(t => t === expense.memo);
+          setExpenseType(type ? type as ExpenseType : '기타');
+          if (!type) setValue('memo', expense.memo);
         }
       } catch (error) {
         console.error('데이터 조회 실패:', error);
@@ -192,14 +198,26 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
               </div>
 
               <div className="space-y-2">
-                <Input
-                  placeholder="사용내역"
-                  {...register('memo')}
-                  className="w-full"
-                />
-                <p className="text-xs text-red-500">
-                  저녁식대의 경우 &quot;저녁&quot; 문구를 포함해서 작성해주세요
-                </p>
+                <div className="flex gap-2">
+                  <select
+                    value={expenseType}
+                    onChange={(e) => setExpenseType(e.target.value as ExpenseType)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="점심식대">점심식대</option>
+                    <option value="저녁식대">저녁식대</option>
+                    <option value="차대">차대</option>
+                    <option value="휴일근무">휴일근무</option>
+                    <option value="기타">기타</option>
+                  </select>
+                  {expenseType === '기타' && (
+                    <Input
+                      placeholder="사용내역"
+                      {...register('memo')}
+                      className="w-full"
+                    />
+                  )}
+                </div>
               </div>
 
               {error && (

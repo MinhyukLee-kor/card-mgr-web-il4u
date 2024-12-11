@@ -11,6 +11,8 @@ import { Loading } from "@/components/ui/loading";
 import { ArrowLeft } from 'lucide-react';
 import { formatAmount, parseAmount } from "@/lib/utils";
 
+type ExpenseType = '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
+
 export default function CreateExpensePage() {
   const router = useRouter();
   const [users, setUsers] = useState<ExpenseShare[]>([{ email: '', name: '', amount: 0 }]);
@@ -21,6 +23,7 @@ export default function CreateExpensePage() {
   const [isCardUsage, setIsCardUsage] = useState(false);
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
   const [totalAmount, setTotalAmount] = useState<number>(0);
+  const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
 
   useEffect(() => {
     // 현재 로그인한 사용자 정보 가져오기
@@ -128,6 +131,7 @@ export default function CreateExpensePage() {
         },
         body: JSON.stringify({
           ...data,
+          memo: expenseType === '기타' ? data.memo : expenseType,
           isCardUsage,
           users
         }),
@@ -295,14 +299,26 @@ export default function CreateExpensePage() {
               </div>
 
               <div className="space-y-2">
-                <Input
-                  placeholder="사용내역"
-                  {...register('memo')}
-                  className="w-full"
-                />
-                <p className="text-xs text-red-500">
-                  저녁식대의 경우 &quot;저녁&quot; 문구를 포함해서 작성해주세요
-                </p>
+                <div className="flex gap-2">
+                  <select
+                    value={expenseType}
+                    onChange={(e) => setExpenseType(e.target.value as ExpenseType)}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="점심식대">점심식대</option>
+                    <option value="저녁식대">저녁식대</option>
+                    <option value="차대">차대</option>
+                    <option value="휴일근무">휴일근무</option>
+                    <option value="기타">기타</option>
+                  </select>
+                  {expenseType === '기타' && (
+                    <Input
+                      placeholder="사용내역"
+                      {...register('memo')}
+                      className="w-full"
+                    />
+                  )}
+                </div>
               </div>
 
               {error && (

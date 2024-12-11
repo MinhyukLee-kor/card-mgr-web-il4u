@@ -25,6 +25,7 @@ interface Expense {
 }
 
 type MealType = 'all' | 'lunch' | 'dinner';
+type ExpenseType = '전체' | '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
 
 export default function ExpensesPage() {
   const router = useRouter();
@@ -35,6 +36,10 @@ export default function ExpensesPage() {
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
   const [mealType, setMealType] = useState<MealType>('all');
+  const [expenseType, setExpenseType] = useState<ExpenseType>('전체');
+  const [searchKeyword, setSearchKeyword] = useState('');
+  const [searchText, setSearchText] = useState('');
+  const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
 
   // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -70,7 +75,12 @@ export default function ExpensesPage() {
       if (endDate) params.append('endDate', endDate);
       if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
       params.append('viewType', viewType);
-      params.append('mealType', mealType);
+      if (expenseType !== '전체') {
+        params.append('expenseType', expenseType);
+        if (expenseType === '기타') {
+          params.append('searchKeyword', searchText);
+        }
+      }
 
       const response = await fetch(`/api/expenses?${params}`);
       const data = await response.json();
@@ -88,13 +98,15 @@ export default function ExpensesPage() {
   };
 
   useEffect(() => {
-    fetchExpenses();
+    if (expenseType !== '기타' || (expenseType === '기타' && appliedSearchKeyword)) {
+      fetchExpenses();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, isCardUsage, viewType, mealType]);
+  }, [startDate, endDate, isCardUsage, viewType, expenseType, appliedSearchKeyword]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const year = date.getFullYear().toString().slice(2); // 연도에서 뒤의 2자리만 사용
+    const year = date.getFullYear().toString().slice(2); // 연도에서 뒤 2자리만 사용
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
@@ -163,6 +175,10 @@ export default function ExpensesPage() {
   // 등록자 확인 함수 수정
   const isRegistrant = (registrantEmail: string) => {
     return registrantEmail === userEmail;
+  };
+
+  const handleSearch = () => {
+    setAppliedSearchKeyword(searchText);
   };
 
   return (
@@ -248,40 +264,32 @@ export default function ExpensesPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <span className="text-sm font-medium">사용내역:</span>
-                <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
-                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      checked={mealType === 'all'}
-                      onChange={() => setMealType('all')}
-                      className="hidden"
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <select
+                    value={expenseType}
+                    onChange={(e) => {
+                      setExpenseType(e.target.value as ExpenseType);
+                      setSearchText('');
+                      setAppliedSearchKeyword('');
+                    }}
+                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                  >
+                    <option value="전체">전체</option>
+                    <option value="점심식대">점심식대</option>
+                    <option value="저녁식대">저녁식대</option>
+                    <option value="차대">차대</option>
+                    <option value="휴일근무">휴일근무</option>
+                    <option value="기타">기타</option>
+                  </select>
+                  {expenseType === '기타' && (
+                    <Input
+                      type="text"
+                      placeholder="검색어 입력"
+                      value={searchText}
+                      onChange={(e) => setSearchText(e.target.value)}
+                      className="w-full sm:w-40"
                     />
-                    <span className={`text-sm ${mealType === 'all' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
-                      전체
-                    </span>
-                  </label>
-                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      checked={mealType === 'lunch'}
-                      onChange={() => setMealType('lunch')}
-                      className="hidden"
-                    />
-                    <span className={`text-sm ${mealType === 'lunch' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
-                      점심
-                    </span>
-                  </label>
-                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
-                    <input
-                      type="radio"
-                      checked={mealType === 'dinner'}
-                      onChange={() => setMealType('dinner')}
-                      className="hidden"
-                    />
-                    <span className={`text-sm ${mealType === 'dinner' ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
-                      저녁
-                    </span>
-                  </label>
+                  )}
                 </div>
               </div>
 
