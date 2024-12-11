@@ -10,6 +10,7 @@ import { ExpenseForm, ExpenseShare, UserOption } from '@/types/expense';
 import { Loading } from "@/components/ui/loading";
 import { ArrowLeft } from 'lucide-react';
 import { formatAmount, parseAmount } from "@/lib/utils";
+import Select from 'react-select';
 
 type ExpenseType = '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
 
@@ -180,18 +181,37 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
               <div className="space-y-2">
                 {users.map((user, index) => (
                   <div key={index} className="grid grid-cols-2 gap-2">
-                    <select
-                      className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                      value={user.name}
-                      onChange={(e) => updateUser(index, 'name', e.target.value)}
-                    >
-                      <option value="">사용자</option>
-                      {userOptions.map((option) => (
-                        <option key={option.email} value={option.name}>
-                          {option.name}
-                        </option>
-                      ))}
-                    </select>
+                    <Select
+                      value={userOptions.find(option => option.name === user.name)}
+                      onChange={(selected) => {
+                        if (selected) {
+                          updateUser(index, 'name', selected.name);
+                        }
+                      }}
+                      options={userOptions}
+                      getOptionLabel={(option) => option.name}
+                      getOptionValue={(option) => option.email}
+                      placeholder="사용자 선택"
+                      className="flex-1"
+                      styles={{
+                        control: (base) => ({
+                          ...base,
+                          minHeight: '40px',
+                          borderColor: 'rgb(226, 232, 240)',
+                          '&:hover': {
+                            borderColor: 'rgb(226, 232, 240)'
+                          }
+                        })
+                      }}
+                      theme={(theme) => ({
+                        ...theme,
+                        colors: {
+                          ...theme.colors,
+                          primary: '#2563eb',
+                          primary25: '#eff6ff'
+                        }
+                      })}
+                    />
                     <Input
                       type="text"
                       placeholder="금액"

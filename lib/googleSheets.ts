@@ -248,7 +248,8 @@ export const getExpenses = async (
           amount: userSummary[userName] || 0
         }]
       }))
-      .sort((a, b) => b.amount - a.amount); // 금액 기준 내림차순 정렬
+      // 금액 기준 정렬을 사용자 이름 기준 정렬로 변경
+      .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
 
     } else if (viewType === 'admin') {
       // 관리자는 모든 디테일 내역 조회
@@ -434,7 +435,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
       },
     });
 
-    // 2. 기존 디테일 데이터 삭제
+    // 2. 기존 디테일 데���터 삭제
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
       range: '사용내역디테일!A2:C',
@@ -472,7 +473,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
 
     return id;
   } catch (error) {
-    console.error('사용 내역 수정 중 오류 ���생:', error);
+    console.error('사용 내역 수정 중 오류 발생:', error);
     throw error;
   }
 };

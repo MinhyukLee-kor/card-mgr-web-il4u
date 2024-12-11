@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
+import Select from 'react-select';
 
 interface Expense {
   id: string;
@@ -78,7 +79,13 @@ export default function AdminExpensesPage() {
           }
         });
         const data = await response.json();
-        setUserOptions(data.users);
+        
+        // 사용자 목록을 이름 기준으로 정렬
+        const sortedUsers = [...data.users].sort((a, b) => 
+          a.name.localeCompare(b.name, 'ko')
+        );
+        
+        setUserOptions(sortedUsers);
       } catch (error) {
         console.error('사용자 목록 조회 실패:', error);
       }
@@ -123,7 +130,7 @@ export default function AdminExpensesPage() {
       setExpenses(data.expenses);
     } catch (error) {
       console.error('Error fetching data:', error);
-      setError('데이터 조회 중 오류가 발생했습니다.');
+      setError('데이터 조회 중 오류가 발생했습니.');
     } finally {
       setIsLoading(false);
     }
@@ -298,18 +305,40 @@ export default function AdminExpensesPage() {
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
                 <span className="text-sm font-medium">사용자:</span>
-                <select
-                  value={selectedUser}
-                  onChange={(e) => setSelectedUser(e.target.value)}
-                  className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background sm:w-auto"
-                >
-                  <option value="">전체</option>
-                  {userOptions.map((user) => (
-                    <option key={user.email} value={user.name}>
-                      {user.name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  value={userOptions.find(option => option.name === selectedUser)}
+                  onChange={(selected) => setSelectedUser(selected ? selected.name : '')}
+                  options={[
+                    { name: '전체', email: '' },
+                    ...userOptions
+                  ]}
+                  getOptionLabel={(option) => option.name}
+                  getOptionValue={(option) => option.email}
+                  placeholder="사용자 선택"
+                  className="flex-1 sm:w-60"
+                  styles={{
+                    control: (base) => ({
+                      ...base,
+                      minHeight: '40px',
+                      borderColor: 'rgb(226, 232, 240)',
+                      '&:hover': {
+                        borderColor: 'rgb(226, 232, 240)'
+                      }
+                    }),
+                    menu: (base) => ({
+                      ...base,
+                      zIndex: 50
+                    })
+                  }}
+                  theme={(theme) => ({
+                    ...theme,
+                    colors: {
+                      ...theme.colors,
+                      primary: '#2563eb',
+                      primary25: '#eff6ff'
+                    }
+                  })}
+                />
               </div>
             </div>
 
@@ -327,7 +356,7 @@ export default function AdminExpensesPage() {
                   className="overflow-y-auto min-h-[300px]"
                 >
                   <table className="w-full border-collapse">
-                    <thead className="sticky top-0 bg-white z-10">
+                    <thead className="sticky top-0 bg-white z-40">
                       <tr className="bg-gray-100">
                         {viewType === 'date' ? (
                           <>
