@@ -34,7 +34,7 @@ export default function ExpensesPage() {
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
 
-  // 현�� 달의 시작일과 마지막 날을 계산
+  // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
     const now = new Date();
     // 현재 달의 1일
@@ -365,18 +365,18 @@ export default function ExpensesPage() {
             )}
           </CardContent>
         </Card>
+        
+        <div className="mt-6 px-4">
+          <Button
+            onClick={() => router.push('/expenses/create')}
+            className="w-full h-14 text-white text-lg font-semibold shadow-lg hover:shadow-xl rounded-lg"
+            style={{ backgroundColor: '#0F172A' }}
+          >
+            <Plus className="h-6 w-6 mr-2" />
+            <span>신규 등록</span>
+          </Button>
+        </div>
       </div>
-
-      <Button
-        onClick={() => router.push('/expenses/create')}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg hover:shadow-xl"
-        style={{
-          WebkitTapHighlightColor: 'transparent'
-        }}
-        title="새 내역 등록"
-      >
-        <Plus className="h-6 w-6" />
-      </Button>
     </>
   );
 } 

@@ -226,6 +226,7 @@ export default function CreateExpensePage() {
                     value={formatAmount(totalAmount)}
                     onChange={(e) => handleTotalAmountChange(e.target.value)}
                     className="text-right"
+                    autoFocus
                   />
                 </div>
                 <Button
@@ -241,9 +242,9 @@ export default function CreateExpensePage() {
               {/* 사용자별 금액 입력 */}
               <div className="space-y-2">
                 {users.map((user, index) => (
-                  <div key={index} className="flex items-center gap-2">
+                  <div key={index} className="grid grid-cols-2 gap-2">
                     <select
-                      className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                      className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
                       value={user.name}
                       onChange={(e) => updateUser(index, 'name', e.target.value)}
                     >
@@ -259,13 +260,14 @@ export default function CreateExpensePage() {
                       placeholder="금액"
                       value={formatAmount(user.amount)}
                       onChange={(e) => updateUser(index, 'amount', e.target.value)}
-                      className="w-24 text-right"
+                      className="text-right"
+                      autoFocus={index === 0}
                     />
                     {users.length > 1 && (
                       <Button 
                         type="button" 
                         onClick={() => removeUser(index)}
-                        className="h-10 w-10 p-0 flex items-center justify-center"
+                        className="absolute right-0 top-0 h-10 w-10 p-0 flex items-center justify-center"
                         title="삭제"
                       >
                         ×
@@ -298,6 +300,9 @@ export default function CreateExpensePage() {
                   {...register('memo')}
                   className="w-full"
                 />
+                <p className="text-xs text-red-500">
+                  저녁식대의 경우 "저녁" 문구를 포함해서 작성해주세요
+                </p>
               </div>
 
               {error && (
