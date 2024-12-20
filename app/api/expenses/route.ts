@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('endDate') || undefined;
     const isCardUsage = searchParams.get('isCardUsage');
     const viewType = searchParams.get('viewType') || 'registrant';
-    const expenseType = searchParams.get('expenseType') || undefined;
+    const expenseTypes = searchParams.get('expenseTypes') || undefined;
     const searchKeyword = searchParams.get('searchKeyword') || undefined;
     const selectedUser = searchParams.get('selectedUser') || undefined;
     
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       isCardUsageBoolean,
       viewType as 'registrant' | 'user' | 'admin' | 'admin-summary',
       selectedUser,
-      expenseType,
+      expenseTypes,
       searchKeyword
     );
 

@@ -149,7 +149,7 @@ export const getExpenses = async (
   isCardUsage?: boolean,
   viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
   selectedUser?: string,
-  expenseType?: string,
+  expenseTypes?: string,
   searchKeyword?: string
 ) => {
   const sheets = getGoogleSheetClient();
@@ -185,18 +185,22 @@ export const getExpenses = async (
 
     // 사용내역 필터 함수 수정
     const memoFilter = (memo: string | undefined) => {
-      if (!expenseType || expenseType === '전체') return true;
+      if (!expenseTypes) return false;
+      
+      const types = expenseTypes.split(',');
+      if (types.includes('전체')) return true;
+      if (types.length === 0) return false;
+      
       if (!memo) return false;
       
-      if (expenseType === '기타') {
-        // 검색어가 없으면 false 반환 (아무것도 조회하지 않음)
-        if (!searchKeyword) return false;
-        // 대소문자 구분 없이 검색어 포함 여부 확인
-        return memo.toLowerCase().includes(searchKeyword.toLowerCase());
-      }
-      
-      // 정확히 일치하는 경우만 반환
-      return memo === expenseType;
+      return types.some(type => {
+        if (type === '기타') {
+          const basicTypes = ['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'];
+          const isNotBasicType = !basicTypes.includes(memo);
+          return isNotBasicType && (searchKeyword ? memo.toLowerCase().includes(searchKeyword.toLowerCase()) : true);
+        }
+        return memo === type;
+      });
     };
 
     if (viewType === 'admin-summary') {
@@ -435,7 +439,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
       },
     });
 
-    // 2. 기존 디테일 데���터 삭제
+    // 2. 기존 디테일 데이터 삭제
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
       range: '사용내역디테일!A2:C',
@@ -526,7 +530,7 @@ export const deleteExpense = async (id: string) => {
   }
 };
 
-// 단일 사용 내역 조회
+// 일일 사용 내역 조회
 export const getExpenseById = async (id: string) => {
   const sheets = getGoogleSheetClient();
   

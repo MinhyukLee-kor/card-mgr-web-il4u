@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import { formatAmount, parseAmount } from "@/lib/utils";
 import Select from 'react-select';
 
-type ExpenseType = '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
+type ExpenseType = '점심식대' | '저녁식대' | '야근식대' | '차대' | '휴일근무' | '기타';
 
 export default function EditExpensePage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -61,7 +61,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           setValue('memo', expense.memo);
           setUsers(expense.users);
           setIsCardUsage(expense.isCardUsage);
-          const type = ['점심식대', '저녁식대', '차대', '휴일근무'].find(t => t === expense.memo);
+          const type = ['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].find(t => t === expense.memo);
           setExpenseType(type ? type as ExpenseType : '기타');
           if (!type) setValue('memo', expense.memo);
         }
@@ -232,6 +232,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                   >
                     <option value="점심식대">점심식대</option>
                     <option value="저녁식대">저녁식대</option>
+                    <option value="야근식대">야근식대</option>
                     <option value="차대">차대</option>
                     <option value="휴일근무">휴일근무</option>
                     <option value="기타">기타</option>

@@ -25,7 +25,7 @@ interface Expense {
 }
 
 type MealType = 'all' | 'lunch' | 'dinner';
-type ExpenseType = '전체' | '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
+type ExpenseType = '전체' | '점심식대' | '저녁식대' | '야근식대' | '차대' | '휴일근무' | '기타';
 
 export default function ExpensesPage() {
   const router = useRouter();
@@ -36,8 +36,7 @@ export default function ExpensesPage() {
   const [isCardUsage, setIsCardUsage] = useState<boolean | null>(null);
   const [viewType, setViewType] = useState<'registrant' | 'user'>('registrant');
   const [mealType, setMealType] = useState<MealType>('all');
-  const [expenseType, setExpenseType] = useState<ExpenseType>('전체');
-  const [searchKeyword, setSearchKeyword] = useState('');
+  const [selectedExpenseTypes, setSelectedExpenseTypes] = useState<ExpenseType[]>(['전체']);
   const [searchText, setSearchText] = useState('');
   const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
 
@@ -75,9 +74,11 @@ export default function ExpensesPage() {
       if (endDate) params.append('endDate', endDate);
       if (isCardUsage !== null) params.append('isCardUsage', isCardUsage.toString());
       params.append('viewType', viewType);
-      if (expenseType !== '전체') {
-        params.append('expenseType', expenseType);
-        if (expenseType === '기타') {
+      
+      // 선택된 사용내역 타입들을 쉼표로 구분하여 전달
+      if (selectedExpenseTypes.length > 0) {
+        params.append('expenseTypes', selectedExpenseTypes.join(','));
+        if (selectedExpenseTypes.includes('기타')) {
           params.append('searchKeyword', searchText);
         }
       }
@@ -98,11 +99,8 @@ export default function ExpensesPage() {
   };
 
   useEffect(() => {
-    if (expenseType !== '기타' || (expenseType === '기타' && appliedSearchKeyword)) {
-      fetchExpenses();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, endDate, isCardUsage, viewType, expenseType, appliedSearchKeyword]);
+    fetchExpenses();
+  }, [startDate, endDate, isCardUsage, viewType]);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -116,7 +114,7 @@ export default function ExpensesPage() {
     return amount.toLocaleString('ko-KR') + '원';
   };
 
-  // 총액 계산
+  // 총액 계��
   const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
   const handleDelete = async (id: string) => {
@@ -179,6 +177,28 @@ export default function ExpensesPage() {
 
   const handleSearch = () => {
     setAppliedSearchKeyword(searchText);
+  };
+
+  const handleExpenseTypeChange = (type: ExpenseType, checked: boolean) => {
+    setSelectedExpenseTypes(prev => {
+      let newTypes: ExpenseType[];
+      
+      if (type === '전체') {
+        // 전체 선택 시
+        newTypes = checked ? ['전체'] : [];
+      } else {
+        // 전체가 이미 선택된 상태에서 다른 항목 선택 시 전체 해제
+        const withoutAll = prev.filter(t => t !== '전체');
+        
+        if (checked) {
+          newTypes = [...withoutAll, type];
+        } else {
+          newTypes = withoutAll.filter(t => t !== type);
+        }
+      }
+      
+      return newTypes;
+    });
   };
 
   return (
@@ -262,34 +282,86 @@ export default function ExpensesPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <span className="text-sm font-medium">사용내역:</span>
-                <div className="flex gap-2 w-full sm:w-auto">
-                  <select
-                    value={expenseType}
-                    onChange={(e) => {
-                      setExpenseType(e.target.value as ExpenseType);
-                      setSearchText('');
-                      setAppliedSearchKeyword('');
-                    }}
-                    className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
-                  >
-                    <option value="전체">전체</option>
-                    <option value="점심식대">점심식대</option>
-                    <option value="저녁식대">저녁식대</option>
-                    <option value="차대">차대</option>
-                    <option value="휴일근무">휴일근무</option>
-                    <option value="기타">기타</option>
-                  </select>
-                  {expenseType === '기타' && (
-                    <Input
-                      type="text"
-                      placeholder="검색어 입력"
-                      value={searchText}
-                      onChange={(e) => setSearchText(e.target.value)}
-                      className="w-full sm:w-40"
+              <div className="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4">
+                <span className="text-sm font-medium mt-2">사용내역:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 w-full sm:w-auto">
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('전체')}
+                      onChange={(e) => handleExpenseTypeChange('전체', e.target.checked)}
+                      className="hidden"
                     />
-                  )}
+                    <span className={`text-sm ${selectedExpenseTypes.includes('전체') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      전체
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('점심식대')}
+                      onChange={(e) => handleExpenseTypeChange('점심식대', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('점심식대') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      점심식대
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('저녁식대')}
+                      onChange={(e) => handleExpenseTypeChange('저녁식대', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('저녁식대') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      저녁식대
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('야근식대')}
+                      onChange={(e) => handleExpenseTypeChange('야근식대', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('야근식대') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      야근식대
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('차대')}
+                      onChange={(e) => handleExpenseTypeChange('차대', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('차대') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      차대
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('휴일근무')}
+                      onChange={(e) => handleExpenseTypeChange('휴일근무', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('휴일근무') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      휴일근무
+                    </span>
+                  </label>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedExpenseTypes.includes('기타')}
+                      onChange={(e) => handleExpenseTypeChange('기타', e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${selectedExpenseTypes.includes('기타') ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      기타
+                    </span>
+                  </label>
                 </div>
               </div>
 

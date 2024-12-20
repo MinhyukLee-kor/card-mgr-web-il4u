@@ -12,7 +12,7 @@ import { ArrowLeft } from 'lucide-react';
 import { formatAmount, parseAmount } from "@/lib/utils";
 import Select from 'react-select';
 
-type ExpenseType = '점심식대' | '저녁식대' | '차대' | '휴일근무' | '기타';
+type ExpenseType = '점심식대' | '저녁식대' | '야근식대' | '차대' | '휴일근무' | '기타';
 
 export default function CreateExpensePage() {
   const router = useRouter();
@@ -337,6 +337,7 @@ export default function CreateExpensePage() {
                   >
                     <option value="점심식대">점심식대</option>
                     <option value="저녁식대">저녁식대</option>
+                    <option value="야근식대">야근식대</option>
                     <option value="차대">차대</option>
                     <option value="휴일근무">휴일근무</option>
                     <option value="기타">기타</option>
