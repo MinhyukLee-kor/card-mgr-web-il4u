@@ -212,7 +212,7 @@ export const getExpenses = async (
       // 선택된 사용자가 있으면 해당 사용자만 포함
       const targetUsers = selectedUser ? [selectedUser] : activeUsers;
 
-      // 사용자별 합계 계산
+      // 사���자별 합계 계산
       const userSummary = details
         .reduce((acc: { [key: string]: number }, detail) => {
           const masterId = detail[0];
@@ -258,7 +258,10 @@ export const getExpenses = async (
     } else if (viewType === 'admin') {
       // 관리자는 모든 디테일 내역 조회
       const allDetails = details
-        .filter(detail => !selectedUser || detail[1] === selectedUser)
+        .filter(detail => {
+          // selectedUser가 빈 문자열('')이면 모든 사용자 포함
+          return !selectedUser || selectedUser === '' || detail[1] === selectedUser;
+        })
         .map(detail => {
           const masterId = detail[0];
           const masterData = masters.find(m => m[0] === masterId);
@@ -538,7 +541,7 @@ export const getExpenseById = async (id: string) => {
     // 마스터 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '���용내역마스터!A2:G',
     });
 
     const masterRows = masterResponse.data.values || [];

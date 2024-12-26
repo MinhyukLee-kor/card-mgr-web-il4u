@@ -368,10 +368,10 @@ export default function AdminExpensesPage() {
                   value={userOptions.find(option => option.name === selectedUser)}
                   onChange={(selected) => setSelectedUser(selected ? selected.name : '')}
                   options={[
-                    { name: '전체', email: '' },
+                    { name: '', email: '' },
                     ...userOptions
                   ]}
-                  getOptionLabel={(option) => option.name}
+                  getOptionLabel={(option) => option.name || '전체'}
                   getOptionValue={(option) => option.email}
                   placeholder="사용자 선택"
                   className="flex-1 sm:w-60"
