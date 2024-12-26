@@ -90,6 +90,43 @@ export const getAllUsers = async () => {
   }
 };
 
+// 메뉴 목록 조회 함수 추가
+export const getAllMenus = async () => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '메뉴!A2:A', // 메뉴명 컬럼만 조회
+    });
+
+    const rows = response.data.values || [];
+    return rows.map(row => row[0]).filter(menu => menu); // 빈 값 제외
+  } catch (error) {
+    console.error('메뉴 목록 조회 중 오류 발생:', error);
+    throw error;
+  }
+};
+
+// 새로운 메뉴 추가 함수
+export const addNewMenu = async (menuName: string) => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '메뉴!A2:A',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[menuName]]
+      },
+    });
+  } catch (error) {
+    console.error('새로운 메뉴 추가 중 오류 발생:', error);
+    throw error;
+  }
+};
+
 // 사용 내역 등록 (마스터/디테일)
 export const createExpense = async (expense: ExpenseForm, registrant: { email: string; name: string }) => {
   const sheets = getGoogleSheetClient();
@@ -111,7 +148,7 @@ export const createExpense = async (expense: ExpenseForm, registrant: { email: s
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2', // A2로만 지정
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [masterRow]
@@ -122,17 +159,31 @@ export const createExpense = async (expense: ExpenseForm, registrant: { email: s
     const detailRows = expense.users.map(user => [
       id,
       user.name,
-      user.amount
+      user.amount,
+      user.customMenu || user.menu || ''
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:C',
+      range: '사용내역디테일!A2', // A2로만 지정
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: detailRows
       },
     });
+
+    // 새로운 메뉴인 경우 메뉴 시트에 추가
+    if (expense.users.some(user => user.menu === '기타')) {
+      const newMenus = expense.users
+        .filter(user => user.customMenu) // customMenu가 있는 경우만
+        .map(user => user.customMenu)
+        .filter((menu): menu is string => menu !== undefined) // undefined 제거 및 타입 가드
+        .filter((menu, index, self) => self.indexOf(menu) === index); // 중복 제거
+
+      for (const menu of newMenus) {
+        await addNewMenu(menu);
+      }
+    }
 
     return id;
   } catch (error) {
@@ -212,7 +263,7 @@ export const getExpenses = async (
       // 선택된 사용자가 있으면 해당 사용자만 포함
       const targetUsers = selectedUser ? [selectedUser] : activeUsers;
 
-      // 사���자별 합계 계산
+      // 사용자별 합계 계산
       const userSummary = details
         .reduce((acc: { [key: string]: number }, detail) => {
           const masterId = detail[0];
@@ -273,7 +324,7 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
+          const isMemoMatch = memoFilter(masterData[4]); // ���용내역 필터 추가
 
           if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
 
@@ -421,7 +472,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
     const masterRowIndex = masterRows.findIndex(row => row[0] === id);
 
     if (masterRowIndex === -1) {
-      throw new Error('수정할 마스터 데이터를 찾을 수 없습니다.');
+      throw new Error('수정할 마스터 데이터 찾을 수 없습니다.');
     }
 
     // 마스터 데이터 업데이트
@@ -458,7 +509,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
     for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역디테일!A${rowIndex}:C${rowIndex}`,
+        range: `사용내역디테일!A${rowIndex}:D${rowIndex}`, // D열까지 포함
       });
     }
 
@@ -466,17 +517,31 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
     const newDetailRows = expense.users.map(user => [
       id,
       user.name,
-      user.amount
+      user.amount,
+      user.customMenu || user.menu || ''
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:C',
+      range: '사용내역디테일!A2', // A2로만 지정
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: newDetailRows
       },
     });
+
+    // 새로운 메뉴인 경우 메뉴 시트에 추가
+    if (expense.users.some(user => user.menu === '기타')) {
+      const newMenus = expense.users
+        .filter(user => user.customMenu) // customMenu가 있는 경우만
+        .map(user => user.customMenu)
+        .filter((menu): menu is string => menu !== undefined) // undefined 제거 및 타입 가드
+        .filter((menu, index, self) => self.indexOf(menu) === index); // 중복 제거
+
+      for (const menu of newMenus) {
+        await addNewMenu(menu);
+      }
+    }
 
     return id;
   } catch (error) {
@@ -509,7 +574,7 @@ export const deleteExpense = async (id: string) => {
     // 2. 디테일 데이터 삭제
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:C',
+      range: '사용내역디테일!A2:D', // D열까지 조회
     });
 
     const detailRows = detailResponse.data.values || [];
@@ -518,11 +583,11 @@ export const deleteExpense = async (id: string) => {
       return acc;
     }, []);
 
-    // 디테일 데이터 삭제
+    // 디테일 데이터 삭제 (D열까지 포함)
     for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역디테일!A${rowIndex}:C${rowIndex}`,
+        range: `사용내역디테일!A${rowIndex}:D${rowIndex}`,
       });
     }
 
@@ -541,7 +606,7 @@ export const getExpenseById = async (id: string) => {
     // 마스터 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '���용내역마스터!A2:G',
+      range: '사용내역마스터!A2:G',
     });
 
     const masterRows = masterResponse.data.values || [];
@@ -552,15 +617,18 @@ export const getExpenseById = async (id: string) => {
     // 디테일 데이터 조회
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:C',
+      range: '사용내역디테일!A2:D', // D열(메뉴)까지 조회
     });
 
     const detailRows = detailResponse.data.values || [];
+    const menus = await getAllMenus();
     const userDetails = detailRows
       .filter(row => row[0] === id)
       .map(row => ({
         name: row[1],
-        amount: parseInt(row[2])
+        amount: parseInt(row[2]),
+        menu: row[3] || '', // 메뉴 정보 추가
+        customMenu: row[3] && !menus.includes(row[3]) ? row[3] : undefined // 메뉴 목록에 없는 경우 customMenu로 설정
       }));
 
     return {

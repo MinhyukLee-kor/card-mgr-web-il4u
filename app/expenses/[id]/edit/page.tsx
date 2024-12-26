@@ -23,6 +23,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
   const [isCardUsage, setIsCardUsage] = useState(false);
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
+  const [menus, setMenus] = useState<string[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -76,7 +77,27 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
     fetchData();
   }, [params.id, setValue]);
 
-  const updateUser = (index: number, field: keyof ExpenseShare, value: string | number) => {
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const response = await fetch('/api/menus', {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        const data = await response.json();
+        setMenus(['기타', ...data.menus]);
+      } catch (error) {
+        console.error('메뉴 목록 조회 실패:', error);
+      }
+    };
+
+    fetchMenus();
+  }, []);
+
+  const updateUser = (index: number, field: keyof ExpenseShare, value: string | number | undefined) => {
+    
     const newUsers = [...users];
     if (field === 'name' && typeof value === 'string') {
       const selectedUser = userOptions.find(option => option.name === value);
@@ -87,10 +108,29 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           email: selectedUser.email
         };
       }
-    } else if (field === 'amount') {
+    } else if (field === 'amount' && typeof value === 'string') {
       newUsers[index] = {
         ...newUsers[index],
-        amount: parseAmount(value as string)
+        amount: parseAmount(value)
+      };
+    } else if (field === 'menu') {
+      // menu 필드 업데이트 시 customMenu도 함께 처리
+      newUsers[index] = {
+        ...newUsers[index],
+        menu: value as string,
+        // '기타'가 아닌 경우 customMenu를 undefined로
+        customMenu: value === '기타' ? newUsers[index].customMenu : undefined
+      };
+    } else if (field === 'customMenu') {
+      newUsers[index] = {
+        ...newUsers[index],
+        customMenu: value as string
+        // menu 값은 '기타'로 유지
+      };
+    } else {
+      newUsers[index] = {
+        ...newUsers[index],
+        [field]: value
       };
     }
     setUsers(newUsers);
@@ -180,45 +220,56 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
 
               <div className="space-y-2">
                 {users.map((user, index) => (
-                  <div key={index} className="grid grid-cols-2 gap-2">
-                    <Select
-                      value={userOptions.find(option => option.name === user.name)}
-                      onChange={(selected) => {
-                        if (selected) {
-                          updateUser(index, 'name', selected.name);
-                        }
-                      }}
-                      options={userOptions}
-                      getOptionLabel={(option) => option.name}
-                      getOptionValue={(option) => option.email}
-                      placeholder="사용자 선택"
-                      className="flex-1"
-                      styles={{
-                        control: (base) => ({
-                          ...base,
-                          minHeight: '40px',
-                          borderColor: 'rgb(226, 232, 240)',
-                          '&:hover': {
-                            borderColor: 'rgb(226, 232, 240)'
+                  <div key={index} className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        instanceId={`user-select-${index}`}
+                        value={userOptions.find(option => option.name === user.name)}
+                        onChange={(selected) => {
+                          if (selected) {
+                            updateUser(index, 'name', selected.name);
                           }
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        colors: {
-                          ...theme.colors,
-                          primary: '#2563eb',
-                          primary25: '#eff6ff'
-                        }
-                      })}
-                    />
-                    <Input
-                      type="text"
-                      placeholder="금액"
-                      value={formatAmount(user.amount)}
-                      onChange={(e) => updateUser(index, 'amount', e.target.value)}
-                      className="text-right"
-                    />
+                        }}
+                        options={userOptions}
+                        getOptionLabel={(option) => option.name}
+                        getOptionValue={(option) => option.email}
+                        placeholder="사용자 선택"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="text"
+                        value={formatAmount(user.amount)}
+                        onChange={(e) => updateUser(index, 'amount', parseAmount(e.target.value))}
+                        placeholder="금액"
+                        className="flex-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        instanceId={`menu-select-${index}`}
+                        value={menus.includes(user.menu || '') ? { value: user.menu, label: user.menu } : null}
+                        onChange={(selected) => {
+                          if (selected) {
+                            updateUser(index, 'menu', selected.value);
+                          } else {
+                            updateUser(index, 'menu', '');
+                          }
+                        }}
+                        options={menus.map(menu => ({ value: menu, label: menu }))}
+                        placeholder="메뉴 선택"
+                        className="flex-1"
+                        isClearable
+                      />
+                      {user.menu === '기타' && (
+                        <Input
+                          type="text"
+                          value={user.customMenu || ''}
+                          onChange={(e) => updateUser(index, 'customMenu', e.target.value)}
+                          placeholder="메뉴 직접 입력"
+                          className="flex-1"
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

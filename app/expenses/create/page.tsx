@@ -16,7 +16,12 @@ type ExpenseType = '점심식대' | '저녁식대' | '야근식대' | '차대' |
 
 export default function CreateExpensePage() {
   const router = useRouter();
-  const [users, setUsers] = useState<ExpenseShare[]>([{ email: '', name: '', amount: 0 }]);
+  const [users, setUsers] = useState<ExpenseShare[]>([{ 
+    email: '', 
+    name: '', 
+    amount: 0,
+    menu: ''
+  }]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [error, setError] = useState<string>('');
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
@@ -25,6 +30,7 @@ export default function CreateExpensePage() {
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
+  const [menus, setMenus] = useState<string[]>([]);
 
   useEffect(() => {
     // 현재 로그인한 사용자 정보 가져오기
@@ -76,7 +82,8 @@ export default function CreateExpensePage() {
           setUsers([{ 
             email: currentUser.email, 
             name: currentUser.name, 
-            amount: 0 
+            amount: 0,
+            menu: ''
           }]);
         }
       } catch (error) {
@@ -99,14 +106,14 @@ export default function CreateExpensePage() {
   }, [setValue]);
 
   const addUser = () => {
-    setUsers([...users, { email: '', name: '', amount: 0 }]);
+    setUsers([...users, { email: '', name: '', amount: 0, menu: '' }]);
   };
 
   const removeUser = (index: number) => {
     setUsers(users.filter((_, i) => i !== index));
   };
 
-  const updateUser = (index: number, field: keyof ExpenseShare, value: string | number) => {
+  const updateUser = (index: number, field: keyof ExpenseShare, value: string | number | undefined) => {
     const newUsers = [...users];
     if (field === 'name' && typeof value === 'string') {
       const selectedUser = userOptions.find(option => option.name === value);
@@ -117,10 +124,29 @@ export default function CreateExpensePage() {
           email: selectedUser.email
         };
       }
-    } else if (field === 'amount') {
+    } else if (field === 'amount' && typeof value === 'string') {
       newUsers[index] = {
         ...newUsers[index],
-        amount: parseAmount(value as string)
+        amount: parseAmount(value)
+      };
+    } else if (field === 'menu') {
+      // menu 필드 업데이트 시 customMenu도 함께 처리
+      newUsers[index] = {
+        ...newUsers[index],
+        menu: value as string,
+        // '기타'가 아닌 경우 customMenu를 undefined로
+        customMenu: value === '기타' ? newUsers[index].customMenu : undefined
+      };
+    } else if (field === 'customMenu') {
+      newUsers[index] = {
+        ...newUsers[index],
+        customMenu: value as string
+        // menu 값은 변경하지 않음
+      };
+    } else {
+      newUsers[index] = {
+        ...newUsers[index],
+        [field]: value
       };
     }
     setUsers(newUsers);
@@ -176,10 +202,30 @@ export default function CreateExpensePage() {
     setUsers(newUsers);
   };
 
-  // 총액 변경 핸들러
+  // 총액 변경 들러
   const handleTotalAmountChange = (value: string) => {
     setTotalAmount(parseAmount(value));
   };
+
+  // 메뉴 목록 조회
+  useEffect(() => {
+    const fetchMenus = async () => {
+      try {
+        const response = await fetch('/api/menus', {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        const data = await response.json();
+        setMenus(['기타', ...data.menus]);
+      } catch (error) {
+        console.error('메뉴 목록 조회 실패:', error);
+      }
+    };
+
+    fetchMenus();
+  }, []);
 
   return (
     <>
@@ -253,60 +299,62 @@ export default function CreateExpensePage() {
               {/* 사용자별 금액 입력 */}
               <div className="space-y-2">
                 {users.map((user, index) => (
-                  <div key={index} className="grid grid-cols-2 gap-2">
-                    <Select
-                      value={userOptions.find(option => option.name === user.name)}
-                      onChange={(selected) => {
-                        if (selected) {
-                          updateUser(index, 'name', selected.name);
-                        }
-                      }}
-                      options={userOptions}
-                      getOptionLabel={(option) => option.name}
-                      getOptionValue={(option) => option.email}
-                      placeholder="사용자 선택"
-                      className="flex-1"
-                      styles={{
-                        control: (base) => ({
-                          ...base,
-                          minHeight: '40px',
-                          borderColor: 'rgb(226, 232, 240)',
-                          '&:hover': {
-                            borderColor: 'rgb(226, 232, 240)'
+                  <div key={index} className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        instanceId={`user-select-${index}`}
+                        value={userOptions.find(option => option.name === user.name)}
+                        onChange={(selected) => {
+                          if (selected) {
+                            updateUser(index, 'name', selected.name);
                           }
-                        }),
-                        menu: (base) => ({
-                          ...base,
-                          zIndex: 50
-                        })
-                      }}
-                      theme={(theme) => ({
-                        ...theme,
-                        colors: {
-                          ...theme.colors,
-                          primary: '#2563eb',
-                          primary25: '#eff6ff'
-                        }
-                      })}
-                    />
-                    <Input
-                      type="text"
-                      placeholder="금액"
-                      value={formatAmount(user.amount)}
-                      onChange={(e) => updateUser(index, 'amount', e.target.value)}
-                      className="text-right"
-                      autoFocus={index === 0}
-                    />
-                    {users.length > 1 && (
-                      <Button 
-                        type="button" 
-                        onClick={() => removeUser(index)}
-                        className="absolute right-0 top-0 h-10 w-10 p-0 flex items-center justify-center"
-                        title="삭제"
-                      >
-                        ×
-                      </Button>
-                    )}
+                        }}
+                        options={userOptions}
+                        getOptionLabel={(option) => option.name}
+                        getOptionValue={(option) => option.email}
+                        placeholder="사용자 선택"
+                        className="flex-1"
+                      />
+                      <Input
+                        type="text"
+                        value={formatAmount(user.amount)}
+                        onChange={(e) => updateUser(index, 'amount', parseAmount(e.target.value))}
+                        placeholder="금액"
+                        className="flex-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Select
+                        instanceId={`menu-select-${index}`}
+                        value={menus.includes(user.menu || '') ? { value: user.menu, label: user.menu } : null}
+                        onChange={(selected) => {
+                          if (selected) {
+                            updateUser(index, 'menu', selected.value);
+                          } else {
+                            updateUser(index, 'menu', '');
+                          }
+                        }}
+                        options={menus.map(menu => ({ value: menu, label: menu }))}
+                        placeholder="메뉴 선택"
+                        className="flex-1"
+                        styles={{
+                          control: (base) => ({
+                            ...base,
+                            minHeight: '40px',
+                          })
+                        }}
+                        isClearable
+                      />
+                      {user.menu === '기타' && (
+                        <Input
+                          type="text"
+                          value={user.customMenu || ''}
+                          onChange={(e) => updateUser(index, 'customMenu', e.target.value)}
+                          placeholder="메뉴 직접 입력"
+                          className="flex-1"
+                        />
+                      )}
+                    </div>
                   </div>
                 ))}
                 <Button 

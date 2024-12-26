@@ -23,11 +23,7 @@ export interface ExpenseForm {
   date: string;
   memo: string;
   isCardUsage: boolean;
-  users: {
-    email: string;
-    name: string;
-    amount: number;
-  }[];
+  users: ExpenseShare[];
 }
 
 export interface UserOption {
@@ -39,4 +35,6 @@ export interface ExpenseShare {
   email: string;
   name: string;
   amount: number;
+  menu?: string;
+  customMenu?: string;
 } 
