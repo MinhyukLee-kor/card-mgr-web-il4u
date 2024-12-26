@@ -218,7 +218,11 @@ export default function CreateExpensePage() {
           }
         });
         const data = await response.json();
-        setMenus(['기타', ...data.menus]);
+        // 메뉴 목록을 가나다순으로 정렬하고 '기타'는 항상 맨 앞에 위치
+        const sortedMenus = [...data.menus].sort((a, b) => 
+          a.localeCompare(b, 'ko')
+        );
+        setMenus(['기타', ...sortedMenus]);
       } catch (error) {
         console.error('메뉴 목록 조회 실패:', error);
       }
