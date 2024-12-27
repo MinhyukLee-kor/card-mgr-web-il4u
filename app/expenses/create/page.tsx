@@ -242,7 +242,7 @@ export default function CreateExpensePage() {
         <Card>
           <CardHeader>
             <CardTitle>사용 내역 등록</CardTitle>
-            <CardDescription>법인카드 사용 내역을 등록하세요.</CardDescription>
+            <CardDescription>카드 사용 내역을 등록하세요.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">

@@ -529,7 +529,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm, registrant
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2', // A2로만 지정
+      range: '사용��역디테일!A2', // A2로만 지정
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: newDetailRows
@@ -651,6 +651,85 @@ export const getExpenseById = async (id: string) => {
     };
   } catch (error) {
     console.error('사용 내역 조회 중 오류 발생:', error);
+    throw error;
+  }
+};
+
+// 메뉴 분석 데이터 조회
+export const getMenuAnalysis = async (startDate: string, endDate: string, viewType: string, userEmail?: string) => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    // 마스터 데이터 조회
+    const masterResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역마스터!A2:G',
+    });
+
+    // 디테일 데이터 조회
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:D',
+    });
+
+    const masters = masterResponse.data.values || [];
+    const details = detailResponse.data.values || [];
+
+    // 날짜 범위 내의 데이터만 필터링
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+
+    // 메뉴별 사용 횟수와 마지막 사용 날짜 계산
+    const menuStats = new Map<string, { count: number; lastUsed: string }>();
+    let totalCount = 0;
+
+    details.forEach(detail => {
+      const masterId = detail[0];
+      const menu = detail[3];
+      const userName = detail[1];
+      if (!menu) return;
+
+      const masterData = masters.find(m => m[0] === masterId);
+      if (!masterData) return;
+
+      // 개인별 조회인 경우 해당 사용자의 데이터만 필터링
+      if (viewType === 'personal' && userEmail) {
+        const detailEmail = masters.find(m => m[0] === masterId)?.[5];
+        if (detailEmail !== userEmail) return;
+      }
+
+      const useDate = new Date(masterData[1]);
+      if (useDate < start || useDate > end) return;
+
+      const stats = menuStats.get(menu) || { count: 0, lastUsed: masterData[1] };
+      stats.count++;
+      stats.lastUsed = new Date(stats.lastUsed) > useDate ? stats.lastUsed : masterData[1];
+      menuStats.set(menu, stats);
+      totalCount++;
+    });
+
+    // 결과 데이터 생성
+    const menuRanking = Array.from(menuStats.entries()).map(([menu, stats]) => ({
+      menu,
+      count: stats.count,
+      percentage: (stats.count / totalCount * 100).toFixed(1),
+      lastUsed: stats.lastUsed
+    }));
+
+    // 선호도 순위 (사용 횟수 기준 내림차순)
+    const popularity = [...menuRanking].sort((a, b) => b.count - a.count);
+
+    // 오래된 메뉴 순위 (마지막 사용일 기준 오름차순)
+    const oldestUsed = [...menuRanking].sort((a, b) => 
+      new Date(a.lastUsed).getTime() - new Date(b.lastUsed).getTime()
+    );
+
+    return {
+      popularity,
+      oldestUsed
+    };
+  } catch (error) {
+    console.error('메뉴 분석 데이터 조회 중 오류 발생:', error);
     throw error;
   }
 }; 

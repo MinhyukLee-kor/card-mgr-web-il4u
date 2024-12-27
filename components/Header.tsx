@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from "@/components/ui/button";
 import { LogOut, Settings } from 'lucide-react';
 
@@ -13,6 +14,8 @@ interface User {
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -57,20 +60,49 @@ export function Header() {
     }
   };
 
-  const handleAdminClick = () => {
-    router.push('/admin/expenses');
-  };
-
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
-          <a className="mr-2 flex items-center space-x-2" href="/">
-            <span className="font-bold sm:inline-block">
-              법인카드 관리
-            </span>
-          </a>
+        <div className="relative mr-4">
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="flex flex-col justify-center items-center w-8 h-8 space-y-1.5"
+            aria-label="메뉴 열기"
+          >
+            <span className="block w-5 h-0.5 bg-gray-600"></span>
+            <span className="block w-5 h-0.5 bg-gray-600"></span>
+            <span className="block w-5 h-0.5 bg-gray-600"></span>
+          </button>
+
+          {isMenuOpen && (
+            <>
+              <div
+                className="fixed inset-0 bg-black bg-opacity-50"
+                onClick={() => setIsMenuOpen(false)}
+              ></div>
+              <div className="absolute top-10 left-0 w-48 bg-white rounded-md shadow-lg border">
+                <nav className="py-1">
+                  <Link
+                    href="/menu-analysis"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    메뉴분석
+                  </Link>
+                </nav>
+              </div>
+            </>
+          )}
         </div>
+
+        <div className="mr-4 flex">
+          <Link href="/" className="mr-2 flex items-center space-x-2">
+            <span className="font-bold sm:inline-block">
+              카드사용 관리
+            </span>
+          </Link>
+        </div>
+
         <div className="flex flex-1 items-center justify-end space-x-2">
           {user && (
             <>
@@ -80,7 +112,7 @@ export function Header() {
               {user.role === 'ADMIN' && (
                 <Button
                   variant="outline"
-                  onClick={handleAdminClick}
+                  onClick={() => router.push('/admin/expenses')}
                   className="h-9 sm:h-auto sm:w-auto sm:px-4 flex items-center gap-1"
                   title="관리자"
                 >

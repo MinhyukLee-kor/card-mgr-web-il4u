@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    name: '법인카드 사용내역 관리',
-    short_name: '법인카드',
-    description: '법인카드 사용 내역을 관리하는 웹 애플리케이션',
+    name: '카드 사용내역 관리',
+    short_name: '카드',
+    description: '카드 사용 내역을 관리하는 웹 애플리케이션',
     start_url: '/',
     display: 'standalone',
     background_color: '#FFFFFF',
