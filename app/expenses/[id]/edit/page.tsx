@@ -81,13 +81,17 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
     const fetchMenus = async () => {
       try {
         const response = await fetch('/api/menus', {
+          method: 'GET',
+          cache: 'no-store',
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate',
             'Pragma': 'no-cache'
+          },
+          next: {
+            revalidate: 0
           }
         });
         const data = await response.json();
-        // 메뉴 목록을 가나다순으로 정렬하고 '기타'는 항상 맨 앞에 위치
         const sortedMenus = [...data.menus].sort((a, b) => 
           a.localeCompare(b, 'ko')
         );
