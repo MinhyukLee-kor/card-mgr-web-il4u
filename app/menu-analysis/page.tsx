@@ -173,10 +173,10 @@ export default function MenuAnalysisPage() {
             </CardContent>
           </Card>
 
-          {/* 최근 Pick 메뉴 */}
+          {/* 먹을 때 된 메뉴 */}
           <Card>
             <CardHeader>
-              <CardTitle>최근 Pick 메뉴</CardTitle>
+              <CardTitle>먹을 때 된 메뉴</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
