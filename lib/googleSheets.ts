@@ -90,7 +90,7 @@ export const getAllUsers = async () => {
   }
 };
 
-// 메뉴 목록 조회 함수 추가
+// 메뉴 목록 조회 함수 수정
 export const getAllMenus = async () => {
   const sheets = getGoogleSheetClient();
   
@@ -98,10 +98,16 @@ export const getAllMenus = async () => {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
       range: '메뉴!A2:A', // 메뉴명 컬럼만 조회
+      valueRenderOption: 'UNFORMATTED_VALUE',
+      dateTimeRenderOption: 'FORMATTED_STRING'
     });
 
     const rows = response.data.values || [];
-    return rows.map(row => row[0]).filter(menu => menu); // 빈 값 제외
+    // 빈 값 제외하고 가나다순 정렬
+    return rows
+      .map(row => row[0])
+      .filter(menu => menu) // 빈 값 제외
+      .sort((a, b) => a.localeCompare(b, 'ko')); // 가나다순 정렬
   } catch (error) {
     console.error('메뉴 목록 조회 중 오류 발생:', error);
     throw error;
@@ -324,7 +330,7 @@ export const getExpenses = async (
           const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
             ? true 
             : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(masterData[4]); // ���용내역 필터 추가
+          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
 
           if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
 
