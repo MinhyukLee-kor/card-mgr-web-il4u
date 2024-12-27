@@ -83,12 +83,28 @@ export function Header() {
               <div className="absolute top-10 left-0 w-48 bg-white rounded-md shadow-lg border">
                 <nav className="py-1">
                   <Link
+                    href="/expenses"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    사용 내역 조회
+                  </Link>
+                  <Link
                     href="/menu-analysis"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     메뉴분석
                   </Link>
+                  {user?.role === 'ADMIN' && (
+                    <Link
+                      href="/admin/expenses"
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      관리자
+                    </Link>
+                  )}
                 </nav>
               </div>
             </>
