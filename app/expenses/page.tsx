@@ -99,8 +99,10 @@ export default function ExpensesPage() {
   };
 
   useEffect(() => {
+    // 최초 화면 진입시에만 자동 조회
     fetchExpenses();
-  }, [startDate, endDate, isCardUsage, viewType]);
+    // 의존성 배열을 비워서 최초 1회만 실행되도록 함
+  }, []);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -114,8 +116,11 @@ export default function ExpensesPage() {
     return amount.toLocaleString('ko-KR') + '원';
   };
 
-  // 총액 계��
-  const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+  // 총액 계산
+  const totalAmount = expenses.reduce((sum, expense) => {
+    const userTotal = expense.users.reduce((userSum, user) => userSum + user.amount, 0);
+    return sum + userTotal;
+  }, 0);
 
   const handleDelete = async (id: string) => {
     if (!confirm('정말 삭제하시겠습니까?')) return;
@@ -238,7 +243,10 @@ export default function ExpensesPage() {
                     }}
                   />
                 </div>
-                <Button onClick={fetchExpenses} className="shrink-0">
+                <Button 
+                  onClick={fetchExpenses} 
+                  className="shrink-0"
+                >
                   조회
                 </Button>
               </div>
