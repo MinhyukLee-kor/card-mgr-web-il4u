@@ -87,9 +87,12 @@ export async function POST(request: NextRequest) {
     }
 
     const user = JSON.parse(userCookie.value);
-    const expenseId = await createExpense(body, {
-      email: user.email,
-      name: user.name
+    const expenseId = await createExpense({
+      ...body,
+      registrant: {
+        email: user.email,
+        name: user.name
+      }
     });
 
     return NextResponse.json(
