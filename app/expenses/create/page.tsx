@@ -287,21 +287,45 @@ export default function CreateExpensePage() {
                 <div className="flex-1">
                   <Input
                     type="text"
-                    placeholder="총액"
                     value={formatAmount(totalAmount)}
-                    onChange={(e) => handleTotalAmountChange(e.target.value)}
+                    onChange={(e) => setTotalAmount(parseAmount(e.target.value))}
+                    placeholder="총액"
                     className="text-right"
                     autoFocus
                   />
                 </div>
-                <Button
-                  type="button"
-                  onClick={distributeAmount}
-                  className="whitespace-nowrap"
-                  disabled={totalAmount <= 0 || users.length === 0}
-                >
-                  균등 배분
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    onClick={distributeAmount}
+                    className="whitespace-nowrap"
+                    disabled={totalAmount <= 0 || users.length === 0}
+                  >
+                    균등 배분
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      if (users.length <= 1) return;
+                      const firstUserMenu = users[0].menu;
+                      const firstUserCustomMenu = users[0].customMenu;
+                      
+                      const newUsers = users.map((user, index) => {
+                        if (index === 0) return user; // 첫 번째 사용자는 그대로
+                        return {
+                          ...user,
+                          menu: firstUserMenu,
+                          customMenu: firstUserCustomMenu
+                        };
+                      });
+                      setUsers(newUsers);
+                    }}
+                    className="whitespace-nowrap"
+                    disabled={users.length <= 1}
+                  >
+                    메뉴 통일
+                  </Button>
+                </div>
               </div>
 
               {/* 사용자별 금액 입력 */}
