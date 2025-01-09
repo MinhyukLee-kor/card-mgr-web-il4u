@@ -67,9 +67,12 @@ export async function PUT(
       );
     }
 
-    await updateExpense(params.id, body, {
-      email: user.email,
-      name: user.name
+    await updateExpense(params.id, {
+      ...body,
+      registrant: {
+        email: user.email,
+        name: user.name
+      }
     });
 
     return NextResponse.json({

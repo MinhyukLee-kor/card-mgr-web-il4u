@@ -31,9 +31,10 @@ export default function CreateExpensePage() {
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
   const [menus, setMenus] = useState<string[]>([]);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [selectedRegistrant, setSelectedRegistrant] = useState<UserOption | null>(null);
 
   useEffect(() => {
-    // 현재 로그인한 사용자 정보 가져오기
     const getUserFromCookie = () => {
       try {
         const cookies = document.cookie.split(';').reduce((acc, cookie) => {
@@ -48,6 +49,13 @@ export default function CreateExpensePage() {
             email: userData.email,
             name: userData.name
           });
+          setIsAdmin(userData.role === 'ADMIN');
+          if (userData.role === 'ADMIN') {
+            setSelectedRegistrant({
+              email: userData.email,
+              name: userData.name
+            });
+          }
         }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
@@ -166,7 +174,8 @@ export default function CreateExpensePage() {
           ...data,
           memo: expenseType === '기타' ? data.memo : expenseType,
           isCardUsage,
-          users
+          users,
+          registrant: isAdmin && selectedRegistrant ? selectedRegistrant : currentUser
         }),
       });
 
@@ -431,6 +440,27 @@ export default function CreateExpensePage() {
                   )}
                 </div>
               </div>
+
+              {isAdmin && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">등록자 선택</label>
+                  <Select
+                    value={selectedRegistrant}
+                    onChange={(selected) => setSelectedRegistrant(selected)}
+                    options={userOptions}
+                    getOptionLabel={(option) => `${option.name} (${option.email})`}
+                    getOptionValue={(option) => option.email}
+                    placeholder="등록자 선택"
+                    className="w-full"
+                    styles={{
+                      control: (base) => ({
+                        ...base,
+                        minHeight: '40px',
+                      })
+                    }}
+                  />
+                </div>
+              )}
 
               {error && (
                 <div className="text-sm text-red-500">{error}</div>

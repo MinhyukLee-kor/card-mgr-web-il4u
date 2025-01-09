@@ -134,21 +134,20 @@ export const addNewMenu = async (menuName: string) => {
 };
 
 // 사용 내역 등록 (마스터/디테일)
-export const createExpense = async (expense: ExpenseForm, registrant: { email: string; name: string }) => {
+export const createExpense = async (expense: ExpenseForm & { registrant?: { email: string; name: string } }) => {
   const sheets = getGoogleSheetClient();
   
   try {
     const id = uuidv4();
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
-    // 마스터 데이터 등록
     const masterRow = [
       id,
       expense.date,
-      registrant.name,
+      expense.registrant?.name || expense.users[0].name,
       totalAmount,
       expense.memo,
-      registrant.email,
+      expense.registrant?.email || expense.users[0].email,
       expense.isCardUsage ? 'TRUE' : 'FALSE'
     ];
 
@@ -511,10 +510,10 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
     const masterRow = [
       id,
       expense.date,
-      registrant.name,    // 등록자 이름
+      expense.registrant?.name || expense.users[0].name,
       totalAmount,
       expense.memo,
-      registrant.email,   // 등록자 이메일
+      expense.registrant?.email || expense.users[0].email,
       expense.isCardUsage ? 'TRUE' : 'FALSE'
     ];
 
