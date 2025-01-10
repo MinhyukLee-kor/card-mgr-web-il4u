@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/ui/loading";
-import { Pencil, Trash2, Plus } from 'lucide-react';
+import { Pencil, Trash2, Plus, Info } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -39,6 +39,7 @@ export default function ExpensesPage() {
   const [selectedExpenseTypes, setSelectedExpenseTypes] = useState<ExpenseType[]>(['전체']);
   const [searchText, setSearchText] = useState('');
   const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
+  const [monthlyUsage, setMonthlyUsage] = useState<number>(0);
 
   // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -205,6 +206,43 @@ export default function ExpensesPage() {
       return newTypes;
     });
   };
+
+  // 당월 사용 금액 조회 함수
+  const fetchMonthlyUsage = async () => {
+    try {
+      const now = new Date();
+      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      
+      const formatDate = (date: Date) => {
+        return date.toISOString().split('T')[0];
+      };
+
+      const params = new URLSearchParams({
+        startDate: formatDate(firstDay),
+        endDate: formatDate(lastDay),
+        viewType: 'user',
+        expenseTypes: '점심식대,저녁식대,차대'
+      });
+
+      const response = await fetch(`/api/expenses?${params}`);
+      const data = await response.json();
+
+      if (response.ok) {
+        const total = data.expenses.reduce((sum: number, expense: Expense) => {
+          return sum + expense.amount;
+        }, 0);
+        setMonthlyUsage(total);
+      }
+    } catch (error) {
+      console.error('사용 금액 조회 중 오류 발생:', error);
+    }
+  };
+
+  // 컴포넌트 마운트 시 사용 금액 조회
+  useEffect(() => {
+    fetchMonthlyUsage();
+  }, []);
 
   return (
     <>
@@ -480,8 +518,50 @@ export default function ExpensesPage() {
 
             {expenses.length > 0 && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg">
-                <div className="text-left font-semibold">
-                  총액: {formatAmount(totalAmount)}
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
+                  <div className="font-semibold">
+                    총액: {formatAmount(totalAmount)}
+                  </div>
+                  <div className="font-semibold flex flex-row items-center gap-1">
+                    <div className="relative">
+                      <button
+                        className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200"
+                        title="팀운영비 정보"
+                        onClick={(e) => {
+                          const tooltip = e.currentTarget.nextElementSibling;
+                          if (tooltip) {
+                            tooltip.classList.toggle('hidden');
+                          }
+                        }}
+                        onBlur={(e) => {
+                          const tooltip = e.currentTarget.nextElementSibling;
+                          if (tooltip) {
+                            setTimeout(() => {
+                              tooltip.classList.add('hidden');
+                            }, 200);
+                          }
+                        }}
+                      >
+                        <Info className="w-3 h-3 text-gray-500" />
+                      </button>
+                      <div className="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2 sm:bg-transparent">
+                        <div className="bg-black text-white text-xs rounded-lg p-3 mx-4 max-w-[280px] sm:w-72 relative">
+                          해당 금액은 팀운영비 한도 20만원에<br />
+                          대한 금액 입니다.<br />
+                          (점심식대 + 저녁식대 + 차대)
+                          <div className="hidden sm:block absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black"></div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-row items-center gap-1">
+                      <span className={monthlyUsage > 200000 ? 'text-red-600' : 'text-green-600'}>
+                        사용: {formatAmount(monthlyUsage)}
+                      </span>
+                      <span className={+monthlyUsage > 200000 ? 'text-red-600' : 'text-green-600'}>
+                        (잔액: {formatAmount(200000 - monthlyUsage)})
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
