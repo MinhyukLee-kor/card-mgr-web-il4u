@@ -739,4 +739,30 @@ export const getMenuAnalysis = async (startDate: string, endDate: string, viewTy
     console.error('메뉴 분석 데이터 조회 중 오류 발생:', error);
     throw error;
   }
+};
+
+// 공지사항 조회 함수 추가
+export const getNotices = async () => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '공지!A2:B', // A2부터 B열까지 데이터 조회
+    });
+
+    const rows = response.data.values || [];
+    
+    // 날짜 기준으로 정렬하고 최근 5개만 반환
+    return rows
+      .map(row => ({
+        content: row[0],
+        date: row[1]
+      }))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 5);
+  } catch (error) {
+    console.error('공지사항 조회 중 오류 발생:', error);
+    throw error;
+  }
 }; 

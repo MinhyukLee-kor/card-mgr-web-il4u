@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
 
     // 응답 생성
     const response = NextResponse.json({
-      message: '로그인 성공',
-      user: userData
+      message: '로그인되었습니다.',
+      redirectTo: '/'
     });
 
     // 쿠키 설정

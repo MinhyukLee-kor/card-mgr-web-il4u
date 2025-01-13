@@ -125,18 +125,6 @@ export function Header() {
               <span className="text-sm text-gray-500 hidden sm:inline-block">
                 {user.name}님 환영합니다
               </span>
-              {user.role === 'ADMIN' && (
-                <Button
-                  variant="outline"
-                  onClick={() => router.push('/admin/expenses')}
-                  className="h-9 sm:h-auto sm:w-auto sm:px-4 flex items-center gap-1"
-                  title="관리자"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span className="text-xs sm:hidden">ADMIN</span>
-                  <span className="hidden sm:inline">ADMIN</span>
-                </Button>
-              )}
               <div 
                 onClick={handleLogout}
                 className="h-10 w-10 sm:h-9 sm:w-auto sm:px-4 rounded-md border border-red-300 bg-red-100 hover:bg-red-200 text-red-700 flex items-center justify-center cursor-pointer"
