@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { useForm } from "react-hook-form";
 import { LoginForm } from '@/types/auth';
 import { Loading } from "@/components/ui/loading";
+import Link from 'next/link';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -49,7 +50,6 @@ export default function LoginPage() {
       <Card className="w-[350px]">
         <CardHeader>
           <CardTitle>로그인</CardTitle>
-          <CardDescription>회사 이메일로 로그인하세요.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -82,6 +82,13 @@ export default function LoginPage() {
             <Button type="submit" className="w-full">
               로그인
             </Button>
+
+            <div className="text-center text-sm text-gray-500">
+              계정이 없으신가요?{' '}
+              <Link href="/signup" className="text-blue-600 hover:underline">
+                회원가입
+              </Link>
+            </div>
           </form>
         </CardContent>
       </Card>

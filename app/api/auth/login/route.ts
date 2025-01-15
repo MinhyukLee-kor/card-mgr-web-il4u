@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserByEmail } from '@/lib/googleSheets';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,7 +23,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (user.password !== password) {
+    // 비밀번호 비교
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
       return NextResponse.json(
         { message: '비밀번호가 일치하지 않습니다.' },
         { status: 401 }
@@ -35,21 +38,19 @@ export async function POST(request: NextRequest) {
       role: user.role,
     };
 
-    // 응답 생성
     const response = NextResponse.json({
       message: '로그인되었습니다.',
       redirectTo: '/'
     });
 
-    // 쿠키 설정
     response.cookies.set({
       name: 'user',
       value: JSON.stringify(userData),
       path: '/',
-      httpOnly: false, // 클라이언트에서 접근 가능하도록 설정
+      httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 60 * 60 * 24 // 24시간
+      maxAge: 60 * 60 * 24
     });
 
     return response;

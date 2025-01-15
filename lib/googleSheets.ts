@@ -765,4 +765,34 @@ export const getNotices = async () => {
     console.error('공지사항 조회 중 오류 발생:', error);
     throw error;
   }
+};
+
+export const createUser = async (user: {
+  email: string;
+  name: string;
+  password: string;
+  role: string;
+  isActive: boolean;
+}) => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용자!A2:E',
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          user.email,
+          user.name,
+          user.password,
+          user.role,
+          user.isActive ? 'TRUE' : 'FALSE'
+        ]]
+      }
+    });
+  } catch (error) {
+    console.error('사용자 생성 중 오류 발생:', error);
+    throw error;
+  }
 }; 

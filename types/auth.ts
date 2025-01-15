@@ -18,3 +18,10 @@ export interface User {
       role: string;
     };
   }
+  
+  export interface SignUpForm {
+    email: string;
+    name: string;
+    password: string;
+    confirmPassword: string;
+  }
