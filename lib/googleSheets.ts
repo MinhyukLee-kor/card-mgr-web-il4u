@@ -34,7 +34,7 @@ export const getUserByEmail = async (email: string) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용자!A2:E', // A2부터 E열까지 데이터 조회
+      range: '사용자!A2:F', // F열(비밀번호변경일)까지 조회
     });
 
     const rows = response.data.values;
@@ -49,7 +49,8 @@ export const getUserByEmail = async (email: string) => {
       name: user[1],
       password: user[2],
       role: user[3],
-      isActive: user[4] === 'TRUE'
+      isActive: user[4] === 'TRUE',
+      passwordChangedAt: user[5] || null  // 비밀번호 변경일 추가
     };
   } catch (error) {
     console.error('구글 시트 조회 중 오류 발생:', error);
@@ -773,13 +774,14 @@ export const createUser = async (user: {
   password: string;
   role: string;
   isActive: boolean;
+  passwordChangedAt: string;
 }) => {
   const sheets = getGoogleSheetClient();
   
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용자!A2:E',
+      range: '사용자!A2:F',
       valueInputOption: 'RAW',
       requestBody: {
         values: [[
@@ -787,12 +789,53 @@ export const createUser = async (user: {
           user.name,
           user.password,
           user.role,
-          user.isActive ? 'TRUE' : 'FALSE'
+          user.isActive ? 'TRUE' : 'FALSE',
+          user.passwordChangedAt
         ]]
       }
     });
   } catch (error) {
     console.error('사용자 생성 중 오류 발생:', error);
+    throw error;
+  }
+};
+
+export const updateUserPassword = async (email: string, hashedPassword: string) => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    // 사용자 목록 조회
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용자!A2:F',
+    });
+
+    const rows = response.data.values || [];
+    const userRowIndex = rows.findIndex(row => row[0] === email);
+
+    if (userRowIndex === -1) {
+      throw new Error('사용자를 찾을 수 없습니다.');
+    }
+
+    // 현재 날짜를 YYYY-MM-DD 형식으로 가져오기
+    const today = new Date().toISOString().split('T')[0];
+
+    // 비밀번호와 변경일자 업데이트
+    await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.SHEET_ID,
+      range: `사용자!C${userRowIndex + 2}:F${userRowIndex + 2}`,
+      valueInputOption: 'RAW',
+      requestBody: {
+        values: [[
+          hashedPassword,
+          rows[userRowIndex][3] || 'USER',  // 기존 role 유지
+          rows[userRowIndex][4] || 'TRUE',  // 기존 isActive 유지
+          today  // 비밀번호 변경일
+        ]]
+      }
+    });
+  } catch (error) {
+    console.error('비밀번호 업데이트 중 오류 발생:', error);
     throw error;
   }
 }; 

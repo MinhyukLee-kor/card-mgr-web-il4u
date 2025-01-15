@@ -4,11 +4,13 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from "@/components/ui/card";
 import { Receipt, BarChart, Settings, Bell } from 'lucide-react';
+import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 
 interface User {
   email: string;
   name: string;
   role: string;
+  passwordChangedAt?: string | null;
 }
 
 interface Notice {
@@ -22,6 +24,7 @@ export default function HomePage() {
   const [notices, setNotices] = useState<Notice[]>([]);
   const [isNoticeLoading, setIsNoticeLoading] = useState(true);
   const noticesFetched = useRef(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
 
   useEffect(() => {
     const getUserFromCookie = () => {
@@ -35,6 +38,10 @@ export default function HomePage() {
         if (cookies.user) {
           const userData = JSON.parse(decodeURIComponent(cookies.user));
           setUser(userData);
+          
+          if (!userData.passwordChangedAt) {
+            setIsPasswordModalOpen(true);
+          }
         }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
@@ -178,6 +185,13 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* 비밀번호 변경 모달 */}
+      <ChangePasswordModal
+        isOpen={isPasswordModalOpen}
+        onClose={() => setIsPasswordModalOpen(false)}
+        forceChange={!user?.passwordChangedAt}
+      />
     </div>
   );
 }

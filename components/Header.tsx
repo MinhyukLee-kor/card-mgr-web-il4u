@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from 'lucide-react';
+import { LogOut, Settings, User } from 'lucide-react';
 
 interface User {
   email: string;
@@ -125,6 +125,14 @@ export function Header() {
               <span className="text-sm text-gray-500 hidden sm:inline-block">
                 {user.name}님 환영합니다
               </span>
+              <div 
+                onClick={() => router.push('/mypage')}
+                className="h-10 w-10 sm:h-9 sm:w-auto sm:px-4 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 flex items-center justify-center cursor-pointer"
+                title="마이페이지"
+              >
+                <User className="h-6 w-6 sm:hidden" />
+                <span className="hidden sm:inline">내 정보</span>
+              </div>
               <div 
                 onClick={handleLogout}
                 className="h-10 w-10 sm:h-9 sm:w-auto sm:px-4 rounded-md border border-red-300 bg-red-100 hover:bg-red-200 text-red-700 flex items-center justify-center cursor-pointer"
