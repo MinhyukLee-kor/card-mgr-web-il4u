@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from "@/components/ui/card";
 import { Receipt, BarChart, Settings, Bell } from 'lucide-react';
@@ -20,6 +20,8 @@ export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
+  const [isNoticeLoading, setIsNoticeLoading] = useState(true);
+  const noticesFetched = useRef(false);
 
   useEffect(() => {
     const getUserFromCookie = () => {
@@ -44,7 +46,19 @@ export default function HomePage() {
 
   useEffect(() => {
     const fetchNotices = async () => {
+      if (noticesFetched.current) return;
+      
       try {
+        // sessionStorage에서 캐시된 공지사항 확인
+        const cachedNotices = sessionStorage.getItem('notices');
+        if (cachedNotices) {
+          setNotices(JSON.parse(cachedNotices));
+          setIsNoticeLoading(false);
+          noticesFetched.current = true;
+          return;
+        }
+
+        setIsNoticeLoading(true);
         const response = await fetch('/api/notices', {
           headers: {
             'Cache-Control': 'no-store, no-cache, must-revalidate',
@@ -53,8 +67,14 @@ export default function HomePage() {
         });
         const data = await response.json();
         setNotices(data.notices);
+        
+        // 공지사항을 sessionStorage에 저장
+        sessionStorage.setItem('notices', JSON.stringify(data.notices));
+        noticesFetched.current = true;
       } catch (error) {
         console.error('공지사항 조회 실패:', error);
+      } finally {
+        setIsNoticeLoading(false);
       }
     };
 
@@ -72,29 +92,43 @@ export default function HomePage() {
   return (
     <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
       {/* 공지사항 섹션 */}
-      {notices.length > 0 && (
-        <div className="mb-8 max-w-2xl mx-auto px-4 sm:px-0">
-          <Card className="p-4">
-            <div className="flex items-center gap-2 mb-4">
-              <Bell className="h-5 w-5 text-yellow-500" />
-              <h2 className="text-lg font-semibold">공지사항</h2>
-            </div>
-            <div className="space-y-3">
-              {notices.map((notice, index) => (
-                <div 
-                  key={index}
-                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b last:border-0 pb-3 last:pb-0 gap-2"
-                >
-                  <p className="text-sm font-bold text-gray-700 flex-1 break-all">{notice.content}</p>
-                  <span className="text-xs text-gray-500 min-w-[90px] sm:text-right">
-                    {formatDate(notice.date)}
-                  </span>
+      <div className="mb-8 max-w-2xl mx-auto px-4 sm:px-0">
+        <Card className="p-4">
+          <div className="flex items-center gap-2 mb-4">
+            <Bell className="h-5 w-5 text-yellow-500" />
+            <h2 className="text-lg font-semibold">공지사항</h2>
+          </div>
+          <div className="min-h-[120px]">
+            {isNoticeLoading ? (
+              <div className="flex items-center justify-center h-[120px]">
+                <div className="animate-pulse space-y-3 w-full">
+                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
                 </div>
-              ))}
-            </div>
-          </Card>
-        </div>
-      )}
+              </div>
+            ) : notices.length > 0 ? (
+              <div className="space-y-3">
+                {notices.map((notice, index) => (
+                  <div 
+                    key={index}
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b last:border-0 pb-3 last:pb-0 gap-2"
+                  >
+                    <p className="text-sm text-gray-700 flex-1 break-all">{notice.content}</p>
+                    <span className="text-xs text-gray-500 min-w-[90px] sm:text-right">
+                      {formatDate(notice.date)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-[120px] text-gray-500">
+                등록된 공지사항이 없습니다.
+              </div>
+            )}
+          </div>
+        </Card>
+      </div>
 
       {/* 메인 메뉴 섹션 */}
       <div className="px-4 sm:px-0">
