@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { X } from 'lucide-react';
 
 interface ChangePasswordModalProps {
@@ -10,6 +11,7 @@ interface ChangePasswordModalProps {
 }
 
 export function ChangePasswordModal({ isOpen, onClose, forceChange }: ChangePasswordModalProps) {
+  const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -52,8 +54,19 @@ export function ChangePasswordModal({ isOpen, onClose, forceChange }: ChangePass
         return;
       }
 
-      alert('비밀번호가 변경되었습니다.');
-      onClose();
+      alert('비밀번호가 변경되었습니다.\n다시 로그인해주세요.');
+      
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      });
+
+      router.push('/login');
+      router.refresh();
+      
     } catch (error) {
       setError('비밀번호 변경 중 오류가 발생했습니다.');
     } finally {
