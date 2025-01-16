@@ -19,8 +19,10 @@ export async function POST(request: NextRequest) {
     // 비밀번호 암호화
     const hashedPassword = await bcrypt.hash(password, 10);
     
-    // 현재 날짜를 YYYY-MM-DD 형식으로 가져오기
-    const today = new Date().toISOString().split('T')[0];
+    // 한국 시간으로 현재 날짜 가져오기
+    const today = new Date();
+    const koreaTime = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+    const passwordChangedAt = koreaTime.toISOString().split('T')[0];
 
     // 사용자 생성
     await createUser({
@@ -29,7 +31,7 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       role: 'USER',
       isActive: true,
-      passwordChangedAt: today  // 오늘 날짜 추가
+      passwordChangedAt  // 한국 시간 기준 날짜
     });
 
     return NextResponse.json({

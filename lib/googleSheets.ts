@@ -817,8 +817,10 @@ export const updateUserPassword = async (email: string, hashedPassword: string) 
       throw new Error('사용자를 찾을 수 없습니다.');
     }
 
-    // 현재 날짜를 YYYY-MM-DD 형식으로 가져오기
-    const today = new Date().toISOString().split('T')[0];
+    // 한국 시간으로 현재 날짜 가져오기
+    const today = new Date();
+    const koreaTime = new Date(today.getTime() + (9 * 60 * 60 * 1000));
+    const passwordChangedAt = koreaTime.toISOString().split('T')[0];
 
     // 비밀번호와 변경일자 업데이트
     await sheets.spreadsheets.values.update({
@@ -830,7 +832,7 @@ export const updateUserPassword = async (email: string, hashedPassword: string) 
           hashedPassword,
           rows[userRowIndex][3] || 'USER',  // 기존 role 유지
           rows[userRowIndex][4] || 'TRUE',  // 기존 isActive 유지
-          today  // 비밀번호 변경일
+          passwordChangedAt  // 한국 시간 기준 날짜
         ]]
       }
     });
