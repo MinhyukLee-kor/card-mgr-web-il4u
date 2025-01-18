@@ -309,7 +309,16 @@ export const getExpenses = async (
 
       // 사용자별 합계 계산 (디테일 데이터 기준으로 수정)
       const userSummary = details
-        .filter(detail => detail[4] === companyName) // 같은 회사의 데이터만
+        .filter(detail => {
+          const masterId = detail[0];
+          const masterData = masters.find(m => m[0] === masterId);
+          if (!masterData) return false;
+
+          // 날짜 필터링 추가
+          const useDate = new Date(masterData[1]);
+          return detail[4] === companyName && // 같은 회사의 데이터만
+                 useDate >= start && useDate <= end; // 날짜 범위 체크
+        })
         .reduce((acc: { [key: string]: number }, detail) => {
           const userName = detail[1];  // 디테일의 사용자 이름
           const amount = parseInt(detail[2]);  // 디테일의 금액
