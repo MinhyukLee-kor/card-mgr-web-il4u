@@ -223,88 +223,102 @@ export const getExpenses = async (
   const sheets = getGoogleSheetClient();
 
   try {
-    // 먼저 사용자 정보를 조회하여 이름 가져오기
+    // 먼저 현재 사용자 정보를 조회하여 회사명 가져오기
     const userResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용자!A2:E',
+      range: '사용자!A2:G',  // G열(회사)까지 조회
     });
     
     const users = userResponse.data.values || [];
     const currentUser = users.find(user => user[0] === userEmail);
-    const userName = currentUser ? currentUser[1] : '';
+    const companyName = currentUser ? currentUser[6] : '';  // 회사명
 
     // 마스터와 디테일 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2:H',  // H열(회사)까지 조회
     });
 
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:C',
+      range: '사용내역디테일!A2:E',  // E열(회사)까지 조회
     });
 
     const masters = masterResponse.data.values || [];
-    let details = detailResponse.data.values || [];
+    const details = detailResponse.data.values || [];
+
+    // 회사별 필터링 적용
+    const filteredMasters = masters.filter(master => master[7] === companyName);  // H열이 회사명
 
     // 날짜 필터링을 위한 시작일과 종료일
     const start = startDate ? new Date(startDate) : new Date(0);
     const end = endDate ? new Date(endDate) : new Date();
 
-    // 사용내역 필터 함수 수정
-    const memoFilter = (memo: string | undefined) => {
-      if (!expenseTypes) return false;
-      
-      const types = expenseTypes.split(',');
-      if (types.includes('전체')) return true;
-      if (types.length === 0) return false;
-      
-      if (!memo) return false;
-      
-      return types.some(type => {
-        if (type === '기타') {
-          const basicTypes = ['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'];
-          const isNotBasicType = !basicTypes.includes(memo);
-          return isNotBasicType && (searchKeyword ? memo.toLowerCase().includes(searchKeyword.toLowerCase()) : true);
-        }
-        return memo === type;
-      });
-    };
+    // 기존 필터 로직 유지
+    const filteredData = filteredMasters
+      .filter(row => {
+        const date = new Date(row[1]);
+        const cardUsageMatch = isCardUsage === undefined ? true : (row[6] === 'TRUE') === isCardUsage;
+        return date >= start && date <= end && cardUsageMatch;
+      })
+      .map(row => {
+        const id = row[0];
+        const rowDetails = details.filter(detail => detail[0] === id);
+        const totalAmount = parseInt(row[3]);
+
+        return {
+          id,
+          date: row[1],
+          registrant: {
+            name: row[2],
+            email: row[5]
+          },
+          amount: totalAmount,
+          memo: row[4],
+          isCardUsage: row[6] === 'TRUE',
+          users: rowDetails.map(detail => ({
+            name: detail[1],
+            amount: parseInt(detail[2]),
+            menu: detail[3] || ''
+          }))
+        };
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // 사용자별 합계 계산
+    const userSummary = filteredData
+      .reduce((acc: { [key: string]: number }, expense) => {
+        const userName = expense.registrant.name;
+        const amount = expense.amount;
+        
+        acc[userName] = (acc[userName] || 0) + amount;
+        return acc;
+      }, {});
 
     if (viewType === 'admin-summary') {
-      // 먼저 모든 활성 사용자 목록을 가져옴
+      // 먼저 같은 회사의 활성 사용자 목록을 가져옴
       const activeUsers = users
-        .filter(user => user[4] === 'TRUE') // isActive가 TRUE인 사용자만
+        .filter(user => 
+          user[4] === 'TRUE' && // isActive가 TRUE인 사용자만
+          user[6] === companyName // 같은 회사인 사용자만
+        )
         .map(user => user[1]); // 사용자 이름만 추출
 
       // 선택된 사용자가 있으면 해당 사용자만 포함
       const targetUsers = selectedUser ? [selectedUser] : activeUsers;
 
-      // 사용자별 합계 계산
+      // 사용자별 합계 계산 (디테일 데이터 기준으로 수정)
       const userSummary = details
+        .filter(detail => detail[4] === companyName) // 같은 회사의 데이터만
         .reduce((acc: { [key: string]: number }, detail) => {
-          const masterId = detail[0];
-          const masterData = masters.find(m => m[0] === masterId);
-          
-          if (!masterData) return acc;
-
-          const rowDate = new Date(masterData[1]);
-          const isDateInRange = rowDate >= start && rowDate <= end;
-          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
-            ? true 
-            : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
-
-          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return acc;
-
-          const userName = detail[1];
-          const amount = parseInt(detail[2]);
+          const userName = detail[1];  // 디테일의 사용자 이름
+          const amount = parseInt(detail[2]);  // 디테일의 금액
           
           acc[userName] = (acc[userName] || 0) + amount;
           return acc;
         }, {});
 
-      // 모든 활성 사용자에 대해 결과 생성 (사용 내역이 없는 경우 0원으로 표시)
+      // 모든 활성 사용자에 대해 결과 생성
       return targetUsers.map(userName => ({
         id: userName,
         date: '',
@@ -320,48 +334,32 @@ export const getExpenses = async (
           amount: userSummary[userName] || 0
         }]
       }))
-      // 금액 기준 정렬을 사용자 이름 기준 정렬로 변경
       .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
 
     } else if (viewType === 'admin') {
-      // 관리자는 모든 디테일 내역 조회
-      const allDetails = details
-        .filter(detail => {
-          // selectedUser가 빈 문자열('')이면 모든 사용자 포함
-          return !selectedUser || selectedUser === '' || detail[1] === selectedUser;
+      // 관리자는 마스터 내역만 기준으로 조회
+      return filteredMasters
+        .filter(row => {
+          const date = new Date(row[1]);
+          const cardUsageMatch = isCardUsage === undefined ? true : (row[6] === 'TRUE') === isCardUsage;
+          const userMatch = !selectedUser || selectedUser === '' || row[2] === selectedUser;  // 등록자 이름으로 필터링
+          return date >= start && date <= end && cardUsageMatch && userMatch;
         })
-        .map(detail => {
-          const masterId = detail[0];
-          const masterData = masters.find(m => m[0] === masterId);
-          
-          if (!masterData) return null;
-
-          const rowDate = new Date(masterData[1]);
-          const isDateInRange = rowDate >= start && rowDate <= end;
-          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
-            ? true 
-            : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
-
-          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
-
-          return {
-            id: masterId,
-            date: masterData[1],
-            registrant: {
-              name: masterData[2],
-              email: masterData[5]
-            },
-            amount: parseInt(detail[2]),
-            memo: masterData[4],
-            isCardUsage: masterData[6] === 'TRUE',
-            users: [{
-              name: detail[1],
-              amount: parseInt(detail[2])
-            }]
-          };
-        })
-        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .map(row => ({
+          id: row[0],
+          date: row[1],
+          registrant: {
+            name: row[2],
+            email: row[5]
+          },
+          amount: parseInt(row[3]),
+          memo: row[4],
+          isCardUsage: row[6] === 'TRUE',
+          users: [{  // 등록자 정보를 users 배열에 포함
+            name: row[2],  // 등록자 이름
+            amount: parseInt(row[3])  // 총액
+          }]
+        }))
         .sort((a, b) => {
           // 1. 날짜 기준 내림차순
           const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -370,40 +368,28 @@ export const getExpenses = async (
           // 2. 날짜가 같으면 사용내역 기준 오름차순
           return (a.memo || '').localeCompare(b.memo || '', 'ko');
         });
-
-      return allDetails;
     } else if (viewType === 'registrant') {
       // 등록자 기준 조회
-      return masters
-        .filter(master => {
-          const rowDate = new Date(master[1]);
-          const isDateInRange = rowDate >= start && rowDate <= end;
-          const isRegistrantMatch = master[5] === userEmail;
-          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
-            ? true 
-            : (master[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(master[4]); // 사용내역 필터 추가
-
-          return isDateInRange && isRegistrantMatch && isCardUsageMatch && isMemoMatch;
-        })
-        .map(master => {
+      return filteredData
+        .filter(expense => expense.registrant.email === userEmail)
+        .map(expense => {
           const userDetails = details
-            .filter(detail => detail[0] === master[0])
+            .filter(detail => detail[0] === expense.id)
             .map(detail => ({
               name: detail[1],
               amount: parseInt(detail[2])
             }));
 
           return {
-            id: master[0],
-            date: master[1],
+            id: expense.id,
+            date: expense.date,
             registrant: {
-              name: master[2],
-              email: master[5]
+              name: expense.registrant.name,
+              email: expense.registrant.email
             },
-            amount: parseInt(master[3]),
-            memo: master[4],
-            isCardUsage: master[6] === 'TRUE',
+            amount: expense.amount,
+            memo: expense.memo,
+            isCardUsage: expense.isCardUsage,
             users: userDetails
           };
         })
@@ -417,43 +403,26 @@ export const getExpenses = async (
         });
     } else {
       // 사용자 기준 조회 (디테일 테이블 기준)
-      const userDetails = details
-        .filter(detail => detail[1] === userName) // 이메일 대신 이름으로 필터링
-        .map(detail => {
-          const masterId = detail[0];
-          const masterData = masters.find(m => m[0] === masterId);
-          
-          if (!masterData) return null;
-
-          const rowDate = new Date(masterData[1]);
-          const isDateInRange = rowDate >= start && rowDate <= end;
-          const isCardUsageMatch = isCardUsage === undefined || isCardUsage === null 
-            ? true 
-            : (masterData[6] === 'TRUE') === isCardUsage;
-          const isMemoMatch = memoFilter(masterData[4]); // 사용내역 필터 추가
-
-          if (!isDateInRange || !isCardUsageMatch || !isMemoMatch) return null;
-
-          // 현재 사용자의 내역만 포함
-          const userDetail = {
-            name: userName,
-            amount: parseInt(detail[2])
-          };
+      const userDetails = filteredData
+        .map(expense => {
+          // 해당 사용자의 디테일 정보만 찾기
+          const userDetail = expense.users.find(user => user.name === userEmail);
+          if (!userDetail) return null;
 
           return {
-            id: masterId,
-            date: masterData[1],
+            id: expense.id,
+            date: expense.date,
             registrant: {
-              name: masterData[2],
-              email: masterData[5]
+              name: expense.registrant.name,
+              email: expense.registrant.email
             },
-            amount: parseInt(detail[2]), // 사용자 본인의 금액만 표시
-            memo: masterData[4],
-            isCardUsage: masterData[6] === 'TRUE',
-            users: [userDetail] // 현재 사용자의 내역만 포함
+            amount: userDetail.amount,  // 해당 사용자의 금액만
+            memo: expense.memo,
+            isCardUsage: expense.isCardUsage,
+            users: [userDetail]  // 해당 사용자의 정보만
           };
         })
-        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .filter((expense): expense is NonNullable<typeof expense> => expense !== null)
         .sort((a, b) => {
           // 1. 날짜 기준 내림차순
           const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
