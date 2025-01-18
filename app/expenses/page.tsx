@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Loading } from "@/components/ui/loading";
-import { Pencil, Trash2, Plus, Info } from 'lucide-react';
+import { Pencil, Trash2, Plus, Info, X } from 'lucide-react';
 
 interface Expense {
   id: string;
@@ -40,6 +40,8 @@ export default function ExpensesPage() {
   const [searchText, setSearchText] = useState('');
   const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
   const [monthlyUsage, setMonthlyUsage] = useState<number>(0);
+  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
+  const [userCompany, setUserCompany] = useState<string>('');
 
   // 현 의 시작일과 마지막 날을 계산
   const getDefaultDates = () => {
@@ -153,16 +155,11 @@ export default function ExpensesPage() {
           return acc;
         }, {} as { [key: string]: string });
 
-        if (!cookies.user) {
-          console.error('User cookie not found');
-          return;
-        }
-
-        const userData = JSON.parse(decodeURIComponent(cookies.user));
-
-        if (userData) {
+        if (cookies.user) {
+          const userData = JSON.parse(decodeURIComponent(cookies.user));
           setUserName(userData.name);
           setUserEmail(userData.email);
+          setUserCompany(userData.companyName);
         }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
@@ -516,7 +513,7 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {expenses.length > 0 && (
+            {expenses.length > 0 && userCompany === "아이엘포유" && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
                   <div className="font-semibold">
@@ -524,34 +521,26 @@ export default function ExpensesPage() {
                   </div>
                   <div className="font-semibold flex flex-row items-center gap-1">
                     <div className="relative">
-                      <button
-                        className="flex items-center justify-center w-4 h-4 rounded-full hover:bg-gray-200"
-                        title="팀운영비 정보"
-                        onClick={(e) => {
-                          const tooltip = e.currentTarget.nextElementSibling;
-                          if (tooltip) {
-                            tooltip.classList.toggle('hidden');
-                          }
-                        }}
-                        onBlur={(e) => {
-                          const tooltip = e.currentTarget.nextElementSibling;
-                          if (tooltip) {
-                            setTimeout(() => {
-                              tooltip.classList.add('hidden');
-                            }, 200);
-                          }
-                        }}
-                      >
-                        <Info className="w-3 h-3 text-gray-500" />
-                      </button>
-                      <div className="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2 sm:bg-transparent">
-                        <div className="bg-black text-white text-xs rounded-lg p-3 mx-4 max-w-[280px] sm:w-72 relative">
-                          해당 금액은 팀운영비 한도 20만원에<br />
-                          대한 금액 입니다.<br />
-                          (점심식대 + 저녁식대 + 차대)
-                          <div className="hidden sm:block absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black"></div>
+                      <Info 
+                        className="h-4 w-4 cursor-pointer hover:text-gray-600" 
+                        onClick={() => setIsTooltipOpen(true)}
+                      />
+                      {isTooltipOpen && (
+                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2 sm:bg-transparent">
+                          <div className="bg-black text-white text-xs rounded-lg p-3 mx-4 max-w-[280px] sm:w-72 relative">
+                            <button 
+                              onClick={() => setIsTooltipOpen(false)}
+                              className="absolute top-1 right-1 text-white hover:text-gray-300"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                            해당 금액은 팀운영비 한도 20만원에<br />
+                            대한 금액 입니다.<br />
+                            (점심식대 + 저녁식대 + 차대)
+                            <div className="hidden sm:block absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black"></div>
+                          </div>
                         </div>
-                      </div>
+                      )}
                     </div>
                     <div className="flex flex-row items-center gap-1">
                       <span className={monthlyUsage > 200000 ? 'text-red-600' : 'text-green-600'}>
