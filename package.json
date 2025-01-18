@@ -9,6 +9,7 @@
     "lint": "next lint --fix"
   },
   "dependencies": {
+    "@radix-ui/react-dialog": "^1.1.4",
     "@types/uuid": "^10.0.0",
     "bcryptjs": "^2.4.3",
     "class-variance-authority": "^0.7.0",
