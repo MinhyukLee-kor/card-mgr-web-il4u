@@ -2,21 +2,77 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Receipt, BarChart, Settings, Bell } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/ChangePasswordModal';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 
 interface User {
   email: string;
   name: string;
   role: string;
   passwordChangedAt?: string | null;
+  companyName: string;
 }
 
 interface Notice {
   content: string;
   date: string;
 }
+
+interface UsageChartProps {
+  usage: number;
+  limit: number;
+}
+
+const UsageChart = ({ usage, limit }: UsageChartProps) => {
+  const percentage = Math.min((usage / limit) * 100, 100);
+  const data = [
+    { name: '사용액', value: usage },
+    { name: '잔액', value: Math.max(limit - usage, 0) }
+  ];
+  const COLORS = ['#0088FE', '#EEEEEE'];
+
+  return (
+    <Card className="mb-2 max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle className="text-center">이번 달 사용 현황</CardTitle>
+      </CardHeader>
+      <CardContent className="pb-2">
+        <div className="h-[120px] sm:h-[150px] relative">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie
+                data={data}
+                startAngle={180}
+                endAngle={0}
+                innerRadius="60%"
+                outerRadius="100%"
+                paddingAngle={0}
+                dataKey="value"
+
+              >
+                {data.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index]}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 text-center w-full">
+            <div className="text-xl sm:text-2xl font-bold">
+              {usage.toLocaleString()} / {limit.toLocaleString()}
+            </div>
+            <div className="text-sm text-gray-500">원</div>
+          </div>
+        </div>
+        
+      </CardContent>
+    </Card>
+  );
+};
 
 export default function HomePage() {
   const router = useRouter();
@@ -25,6 +81,9 @@ export default function HomePage() {
   const [isNoticeLoading, setIsNoticeLoading] = useState(true);
   const noticesFetched = useRef(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [monthlyUsage, setMonthlyUsage] = useState(0);
+  const MONTHLY_LIMIT = 200000;
+  const [userCompany, setUserCompany] = useState<string>('');
 
   useEffect(() => {
     const getUserFromCookie = () => {
@@ -38,6 +97,7 @@ export default function HomePage() {
         if (cookies.user) {
           const userData = JSON.parse(decodeURIComponent(cookies.user));
           setUser(userData);
+          setUserCompany(userData.companyName);
           
           if (!userData.passwordChangedAt) {
             setIsPasswordModalOpen(true);
@@ -88,6 +148,41 @@ export default function HomePage() {
     fetchNotices();
   }, []);
 
+  useEffect(() => {
+    const fetchMonthlyUsage = async () => {
+      try {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        
+        const formatDate = (date: Date) => {
+          return date.toISOString().split('T')[0];
+        };
+
+        const params = new URLSearchParams({
+          startDate: formatDate(firstDay),
+          endDate: formatDate(lastDay),
+          viewType: 'user',
+          expenseTypes: '점심식대,저녁식대,차대'
+        });
+
+        const response = await fetch(`/api/expenses?${params}`);
+        const data = await response.json();
+
+        if (response.ok) {
+          const total = data.expenses.reduce((sum: number, expense: any) => {
+            return sum + expense.amount;
+          }, 0);
+          setMonthlyUsage(total);
+        }
+      } catch (error) {
+        console.error('사용 금액 조회 중 오류 발생:', error);
+      }
+    };
+
+    fetchMonthlyUsage();
+  }, []);
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const year = date.getFullYear();
@@ -97,45 +192,52 @@ export default function HomePage() {
   };
 
   return (
-    <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
+    <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4 mb-4">
       {/* 공지사항 섹션 */}
-      <div className="mb-8 max-w-2xl mx-auto px-4 sm:px-0">
-        <Card className="p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Bell className="h-5 w-5 text-yellow-500" />
-            <h2 className="text-lg font-semibold">공지사항</h2>
+      <div className="mb-2 max-w-2xl mx-auto px-4 sm:px-0">
+        <Card className="p-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Bell className="h-4 w-4 text-yellow-500" />
+            <h2 className="text-base font-semibold">공지사항</h2>
           </div>
-          <div className="min-h-[120px]">
+          <div className="min-h-[30px]">
             {isNoticeLoading ? (
-              <div className="flex items-center justify-center h-[120px]">
-                <div className="animate-pulse space-y-3 w-full">
-                  <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-4 bg-gray-200 rounded w-2/3"></div>
+              <div className="flex items-center justify-center h-[100px]">
+                <div className="animate-pulse space-y-2 w-full">
+                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                 </div>
               </div>
             ) : notices.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {notices.map((notice, index) => (
                   <div 
                     key={index}
-                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b last:border-0 pb-3 last:pb-0 gap-2"
+                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b last:border-0 pb-2 last:pb-0 gap-1"
                   >
-                    <p className="text-sm text-gray-700 flex-1 break-all">{notice.content}</p>
-                    <span className="text-xs text-gray-500 min-w-[90px] sm:text-right">
+                    <p className="text-xs text-gray-700 flex-1 break-all">{notice.content}</p>
+                    <span className="text-xs text-gray-500 min-w-[80px] sm:text-right">
                       {formatDate(notice.date)}
                     </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[120px] text-gray-500">
+              <div className="flex items-center justify-center h-[80px] text-gray-500 text-xs">
                 등록된 공지사항이 없습니다.
               </div>
             )}
           </div>
         </Card>
       </div>
+
+      {/* 사용 현황 차트 */}
+      {userCompany === "아이엘포유" && (
+        <div className="px-4 sm:px-0">
+          <UsageChart usage={monthlyUsage} limit={MONTHLY_LIMIT} />
+        </div>
+      )}
 
       {/* 메인 메뉴 섹션 */}
       <div className="px-4 sm:px-0">
