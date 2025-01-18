@@ -1,57 +1,81 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Loading } from "@/components/ui/loading";
-import { SignUpForm } from '@/types/auth';
-import Link from 'next/link';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import Select from 'react-select';
+
+interface SignUpForm {
+  email: string;
+  name: string;
+  password: string;
+  confirmPassword: string;
+  companyId: number;
+}
+
+interface Company {
+  id: number;
+  name: string;
+}
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [error, setError] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(false);
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<SignUpForm>();
-  const password = watch('password');
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [error, setError] = useState('');
+  const { register, handleSubmit, formState: { errors }, watch } = useForm<SignUpForm>();
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+
+  useEffect(() => {
+    const fetchCompanies = async () => {
+      try {
+        const response = await fetch('/api/companies');
+        const data = await response.json();
+        setCompanies(data.companies);
+      } catch (error) {
+        console.error('회사 목록 조회 중 오류 발생:', error);
+      }
+    };
+
+    fetchCompanies();
+  }, []);
 
   const onSubmit = async (data: SignUpForm) => {
     try {
-      setIsLoading(true);
+      if (!selectedCompany) {
+        setError('회사를 선택해주세요.');
+        return;
+      }
+
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          companyName: selectedCompany.name
+        }),
       });
 
-      const result = await response.json();
-
       if (!response.ok) {
-        setError(result.message);
-        return;
+        const errorData = await response.json();
+        throw new Error(errorData.message);
       }
 
-      alert('회원가입이 완료되었습니다.');
       router.push('/login');
-    } catch (error) {
-      console.error('회원가입 중 오류 발생:', error);
-      setError('회원가입 중 오류가 발생했습니다.');
-    } finally {
-      setIsLoading(false);
+    } catch (error: any) {
+      setError(error.message);
     }
   };
 
   return (
-    <div className="min-h-[100vh] flex items-center justify-center bg-gray-50">
-      {isLoading && <Loading />}
-      <Card className="w-[350px]">
+    <div className="container max-w-md mx-auto p-4">
+      <Card>
         <CardHeader>
           <CardTitle>회원가입</CardTitle>
-          <CardDescription>필수 정보를 입력해주세요.</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -103,7 +127,7 @@ export default function SignUpPage() {
                 placeholder="비밀번호 확인"
                 {...register('confirmPassword', { 
                   required: true,
-                  validate: value => value === password || '비밀번호가 일치하지 않습니다.'
+                  validate: value => value === watch('password') || '비밀번호가 일치하지 않습니다.'
                 })}
               />
               {errors.confirmPassword && (
@@ -111,20 +135,26 @@ export default function SignUpPage() {
               )}
             </div>
 
+            <div className="space-y-2">
+              <label className="text-sm font-medium">회사</label>
+              <Select
+                value={selectedCompany}
+                onChange={(selected) => setSelectedCompany(selected as Company)}
+                options={companies}
+                getOptionLabel={(option) => option.name}
+                getOptionValue={(option) => option.id.toString()}
+                placeholder="회사 선택"
+                className="w-full"
+              />
+            </div>
+
             {error && (
               <div className="text-sm text-red-500">{error}</div>
             )}
 
             <Button type="submit" className="w-full">
-              회원가입
+              가입하기
             </Button>
-
-            <div className="text-center text-sm text-gray-500">
-              이미 계정이 있으신가요?{' '}
-              <Link href="/login" className="text-blue-600 hover:underline">
-                로그인
-              </Link>
-            </div>
           </form>
         </CardContent>
       </Card>

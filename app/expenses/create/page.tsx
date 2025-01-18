@@ -16,18 +16,13 @@ type ExpenseType = '점심식대' | '저녁식대' | '야근식대' | '차대' |
 
 export default function CreateExpensePage() {
   const router = useRouter();
-  const [users, setUsers] = useState<ExpenseShare[]>([{ 
-    email: '', 
-    name: '', 
-    amount: 0,
-    menu: ''
-  }]);
+  const [users, setUsers] = useState<ExpenseShare[]>([]);
   const [userOptions, setUserOptions] = useState<UserOption[]>([]);
   const [error, setError] = useState<string>('');
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
   const [isLoading, setIsLoading] = useState(false);
   const [isCardUsage, setIsCardUsage] = useState(false);
-  const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
+  const [currentUser, setCurrentUser] = useState<{ email: string; name: string; companyName: string } | null>(null);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
   const [menus, setMenus] = useState<string[]>([]);
@@ -47,13 +42,23 @@ export default function CreateExpensePage() {
           const userData = JSON.parse(decodeURIComponent(cookies.user));
           setCurrentUser({
             email: userData.email,
-            name: userData.name
+            name: userData.name,
+            companyName: userData.companyName
           });
+          
+          setUsers([{ 
+            email: userData.email, 
+            name: userData.name, 
+            amount: 0,
+            menu: ''
+          }]);
+
           setIsAdmin(userData.role === 'ADMIN');
           if (userData.role === 'ADMIN') {
             setSelectedRegistrant({
               email: userData.email,
-              name: userData.name
+              name: userData.name,
+              companyName: userData.companyName
             });
           }
         }
@@ -68,41 +73,32 @@ export default function CreateExpensePage() {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        setIsLoading(true);
-        const response = await fetch('/api/users', {
-          cache: 'no-store',
-          headers: {
-            'Pragma': 'no-cache',
-            'Cache-Control': 'no-store, no-cache, must-revalidate'
-          }
-        });
-        const data = await response.json();
-        
-        // 사용자 목록을 이름 기준으로 정렬
-        const sortedUsers = [...data.users].sort((a, b) => 
-          a.name.localeCompare(b.name, 'ko')
-        );
-        
-        setUserOptions(sortedUsers);
+        const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        }, {} as { [key: string]: string });
 
-        // 현재 사용자가 있으면 첫 번째 사용자로 설정
-        if (currentUser) {
-          setUsers([{ 
-            email: currentUser.email, 
-            name: currentUser.name, 
-            amount: 0,
-            menu: ''
-          }]);
+        if (cookies.user) {
+          const userData = JSON.parse(decodeURIComponent(cookies.user));
+          setCurrentUser({
+            email: userData.email,
+            name: userData.name,
+            companyName: userData.companyName
+          });
+
+          // 회사명을 포함하여 사용자 목록 조회
+          const response = await fetch(`/api/users?companyName=${userData.companyName}`);
+          const data = await response.json();
+          setUserOptions(data.users);
         }
       } catch (error) {
-        console.error('사용자 목록 조회 실패:', error);
-      } finally {
-        setIsLoading(false);
+        console.error('사용자 목록 조회 중 오류 발생:', error);
       }
     };
 
     fetchUsers();
-  }, [currentUser]);
+  }, []);
 
   // 오늘 날짜를 YYYY-MM-DD 형식으로 설정
   useEffect(() => {

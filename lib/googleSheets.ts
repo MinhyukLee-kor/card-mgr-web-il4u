@@ -34,7 +34,7 @@ export const getUserByEmail = async (email: string) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용자!A2:F', // F열(비밀번호변경일)까지 조회
+      range: '사용자!A2:G',  // G열(회사)까지 조회하도록 수정
     });
 
     const rows = response.data.values;
@@ -50,7 +50,8 @@ export const getUserByEmail = async (email: string) => {
       password: user[2],
       role: user[3],
       isActive: user[4] === 'TRUE',
-      passwordChangedAt: user[5] || null  // 비밀번호 변경일 추가
+      passwordChangedAt: user[5] || null,
+      companyName: user[6] || null  // G열의 회사명
     };
   } catch (error) {
     console.error('구글 시트 조회 중 오류 발생:', error);
@@ -58,14 +59,14 @@ export const getUserByEmail = async (email: string) => {
   }
 };
 
-// 모든 사용자 목록 조회
-export const getAllUsers = async () => {
+// 모든 사용자 목록 조회 (회사별 필터링)
+export const getAllUsers = async (companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용자!A2:E',
+      range: '사용자!A2:G',  // G열(회사)까지 조회
     });
 
     const rows = response.data.values;
@@ -78,12 +79,15 @@ export const getAllUsers = async () => {
         // 이메일과 이름이 있는 행만
         row[0]?.trim() && 
         row[1]?.trim() && 
-        // 활성 사용자만 (isActive가 TRUE인 경우)
-        (row[4] === 'TRUE' || row[4] === true)
+        // 활성 사용자만
+        (row[4] === 'TRUE' || row[4] === true) &&
+        // 같은 회사만
+        row[6] === companyName
       )
       .map(row => ({
         email: row[0],
         name: row[1],
+        companyName: row[6]  // 회사명 추가
       }));
   } catch (error) {
     console.error('사용자 목록 조회 중 오류 발생:', error);
@@ -91,23 +95,23 @@ export const getAllUsers = async () => {
   }
 };
 
-// 메뉴 목록 조회 함수 수정
-export const getAllMenus = async () => {
+// 메뉴 목록 조회 (회사별 필터링)
+export const getAllMenus = async (companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '메뉴!A2:A', // 메뉴명 컬럼만 조회
+      range: '메뉴!A2:D',  // D열(회사)까지 조회
       valueRenderOption: 'UNFORMATTED_VALUE',
       dateTimeRenderOption: 'FORMATTED_STRING'
     });
 
     const rows = response.data.values || [];
-    // 빈 값 제외하고 가나다순 정렬
+    // 빈 값 제외, 같은 회사만, 가나다순 정렬
     return rows
+      .filter(row => row[0] && row[3] === companyName)  // 메뉴명이 있고 같은 회사인 것만
       .map(row => row[0])
-      .filter(menu => menu) // 빈 값 제외
       .sort((a, b) => a.localeCompare(b, 'ko')); // 가나다순 정렬
   } catch (error) {
     console.error('메뉴 목록 조회 중 오류 발생:', error);
@@ -116,16 +120,21 @@ export const getAllMenus = async () => {
 };
 
 // 새로운 메뉴 추가 함수
-export const addNewMenu = async (menuName: string) => {
+export const addNewMenu = async (menuName: string, companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '메뉴!A2:A',
+      range: '메뉴!A2:D',  // D열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [[menuName]]
+        values: [[
+          menuName,    // A: 메뉴명
+          '',         // B: 칼로리 (빈값)
+          '',         // C: 알림주기 (빈값)
+          companyName // D: 회사명
+        ]]
       },
     });
   } catch (error) {
@@ -135,7 +144,7 @@ export const addNewMenu = async (menuName: string) => {
 };
 
 // 사용 내역 등록 (마스터/디테일)
-export const createExpense = async (expense: ExpenseForm & { registrant?: { email: string; name: string } }) => {
+export const createExpense = async (expense: ExpenseForm) => {
   const sheets = getGoogleSheetClient();
   
   try {
@@ -143,18 +152,19 @@ export const createExpense = async (expense: ExpenseForm & { registrant?: { emai
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
     const masterRow = [
-      id,
-      expense.date,
-      expense.registrant?.name || expense.users[0].name,
-      totalAmount,
-      expense.memo,
-      expense.registrant?.email || expense.users[0].email,
-      expense.isCardUsage ? 'TRUE' : 'FALSE'
+      id,                                    // A: ID
+      expense.date,                          // B: 날짜
+      expense.registrant?.name || '',        // C: 등록자 이름
+      totalAmount,                           // D: 총액
+      expense.memo,                          // E: 메모
+      expense.registrant?.email || '',       // F: 등록자 이메일
+      expense.isCardUsage ? 'TRUE' : 'FALSE',// G: 법인카드 여부
+      expense.registrant?.companyName || ''  // H: 회사명
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2', // A2로만 지정
+      range: '사용내역마스터!A2:H',  // H열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [masterRow]
@@ -163,15 +173,16 @@ export const createExpense = async (expense: ExpenseForm & { registrant?: { emai
 
     // 디테일 데이터 등록
     const detailRows = expense.users.map(user => [
-      id,
-      user.name,
-      user.amount,
-      user.customMenu || user.menu || ''
+      id,                                    // A: ID
+      user.name,                             // B: 사용자 이름
+      user.amount,                           // C: 금액
+      user.customMenu || user.menu || '',    // D: 메뉴
+      expense.registrant?.companyName || ''  // E: 회사명
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2', // A2로만 지정
+      range: '사용내역디테일!A2:E',  // E열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: detailRows
@@ -181,13 +192,13 @@ export const createExpense = async (expense: ExpenseForm & { registrant?: { emai
     // 새로운 메뉴인 경우 메뉴 시트에 추가
     if (expense.users.some(user => user.menu === '기타')) {
       const newMenus = expense.users
-        .filter(user => user.customMenu) // customMenu가 있는 경우만
+        .filter(user => user.customMenu)
         .map(user => user.customMenu)
-        .filter((menu): menu is string => menu !== undefined) // undefined 제거 및 타입 가드
-        .filter((menu, index, self) => self.indexOf(menu) === index); // 중복 제거
+        .filter((menu): menu is string => menu !== undefined)
+        .filter((menu, index, self) => self.indexOf(menu) === index);
 
       for (const menu of newMenus) {
-        await addNewMenu(menu);
+        await addNewMenu(menu, expense.registrant?.companyName || '');
       }
     }
 
@@ -466,7 +477,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
   
   try {
     // 1. 기존 데이터 조회하여 등록자 정보 가져오기
-    const existingExpense = await getExpenseById(id);
+    const existingExpense = await getExpenseById(id, expense.registrant?.companyName || '');
     const registrant = expense.registrant || existingExpense.registrant;
 
     // 2. 기존 데이터 삭제
@@ -553,7 +564,7 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
         .filter((menu, index, self) => self.indexOf(menu) === index);
 
       for (const menu of newMenus) {
-        await addNewMenu(menu);
+        await addNewMenu(menu, expense.registrant?.companyName || '');
       }
     }
 
@@ -613,7 +624,7 @@ export const deleteExpense = async (id: string) => {
 };
 
 // 사용 내역 상세 조회
-export const getExpenseById = async (id: string) => {
+export const getExpenseById = async (id: string, companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
@@ -630,7 +641,7 @@ export const getExpenseById = async (id: string) => {
     });
 
     // 메뉴 목록 조회
-    const menus = await getAllMenus();
+    const menus = await getAllMenus(companyName);
 
     const masters = masterResponse.data.values || [];
     const details = detailResponse.data.values || [];
@@ -743,19 +754,19 @@ export const getMenuAnalysis = async (startDate: string, endDate: string, viewTy
 };
 
 // 공지사항 조회 함수 추가
-export const getNotices = async () => {
+export const getNotices = async (companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '공지!A2:B', // A2부터 B열까지 데이터 조회
+      range: '공지!A2:C',  // C열(회사)까지 조회
     });
 
     const rows = response.data.values || [];
     
-    // 날짜 기준으로 정렬하고 최근 5개만 반환
     return rows
+      .filter(row => row[2] === companyName)  // 회사명으로 필터링
       .map(row => ({
         content: row[0],
         date: row[1]
@@ -775,6 +786,7 @@ export const createUser = async (user: {
   role: string;
   isActive: boolean;
   passwordChangedAt: string;
+  companyName: string;
 }) => {
   const sheets = getGoogleSheetClient();
   
@@ -790,7 +802,8 @@ export const createUser = async (user: {
           user.password,
           user.role,
           user.isActive ? 'TRUE' : 'FALSE',
-          user.passwordChangedAt
+          user.passwordChangedAt,
+          user.companyName
         ]]
       }
     });
@@ -838,6 +851,29 @@ export const updateUserPassword = async (email: string, hashedPassword: string) 
     });
   } catch (error) {
     console.error('비밀번호 업데이트 중 오류 발생:', error);
+    throw error;
+  }
+};
+
+export const getAllCompanies = async () => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '회사!A2:A',  // A열의 회사명만 조회
+    });
+
+    const rows = response.data.values || [];
+    return rows
+      .filter(row => row[0]?.trim())  // 빈 값 제외
+      .map((row, index) => ({
+        id: index + 1,  // 순서대로 ID 부여
+        name: row[0]
+      }))
+      .sort((a, b) => a.name.localeCompare(b, 'ko'));  // 가나다순 정렬
+  } catch (error) {
+    console.error('회사 목록 조회 중 오류 발생:', error);
     throw error;
   }
 }; 

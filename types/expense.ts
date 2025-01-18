@@ -24,11 +24,17 @@ export interface ExpenseForm {
   memo: string;
   isCardUsage: boolean;
   users: ExpenseShare[];
+  registrant?: {
+    email: string;
+    name: string;
+    companyName: string;
+  };
 }
 
 export interface UserOption {
   email: string;
   name: string;
+  companyName: string;
 }
 
 export interface ExpenseShare {

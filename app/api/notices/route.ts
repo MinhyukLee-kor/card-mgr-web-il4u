@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNotices } from '@/lib/googleSheets';
-
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+import { cookies } from 'next/headers';
 
 export async function GET(_request: NextRequest) {
   try {
-    const notices = await getNotices();
-    return NextResponse.json(
-      { notices },
-      {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate',
-          'Pragma': 'no-cache'
-        }
-      }
-    );
+    const userCookie = cookies().get('user');
+    if (!userCookie) {
+      return NextResponse.json(
+        { message: '로그인이 필요합니다.' },
+        { status: 401 }
+      );
+    }
+
+    const user = JSON.parse(userCookie.value);
+    const notices = await getNotices(user.companyName);
+    
+    return NextResponse.json({ notices });
   } catch (error) {
     console.error('공지사항 조회 중 오류 발생:', error);
     return NextResponse.json(

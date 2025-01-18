@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, name, password } = body;
+    const { email, name, password, companyName } = body;
 
     // 이메일 중복 체크
     const existingUser = await getUserByEmail(email);
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       role: 'USER',
       isActive: true,
-      passwordChangedAt  // 한국 시간 기준 날짜
+      passwordChangedAt,
+      companyName
     });
 
     return NextResponse.json({
@@ -44,4 +45,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-} 
+}
