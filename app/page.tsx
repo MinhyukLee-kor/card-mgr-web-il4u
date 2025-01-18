@@ -241,15 +241,6 @@ export default function HomePage() {
 
       {/* 메인 메뉴 섹션 */}
       <div className="px-4 sm:px-0">
-        <div className="text-center mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-            카드 사용 관리 시스템
-          </h1>
-          <p className="text-gray-600">
-            사용 내역을 조회하고 메뉴 분석을 확인하세요.
-          </p>
-        </div>
-
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
           <Card
             onClick={() => router.push('/expenses')}
