@@ -27,6 +27,7 @@ export default function MenuAnalysisPage() {
   const [viewType, setViewType] = useState<ViewType>('all');
   const [analysis, setAnalysis] = useState<MenuAnalysis | null>(null);
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
+  const [userEmail, setUserEmail] = useState('');
 
   useEffect(() => {
     // 현재 로그인한 사용자 정보 가져오기
@@ -44,6 +45,7 @@ export default function MenuAnalysisPage() {
             email: userData.email,
             name: userData.name
           });
+          setUserEmail(userData.email);
         }
       } catch (error) {
         console.error('Error parsing user cookie:', error);
@@ -62,26 +64,20 @@ export default function MenuAnalysisPage() {
   }, []);
 
   const fetchAnalysis = async () => {
-    if (!currentUser && viewType === 'personal') {
-      alert('사용자 정보를 찾을 수 없습니다.');
-      return;
-    }
-
     try {
       setIsLoading(true);
-      const response = await fetch(
-        `/api/menu-analysis?startDate=${startDate}&endDate=${endDate}&viewType=${viewType}&userEmail=${currentUser?.email || ''}`,
-        {
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        }
-      );
+      const params = new URLSearchParams({
+        startDate,
+        endDate,
+        viewType,
+        ...(viewType === 'personal' && { userName: currentUser?.name })
+      });
+
+      const response = await fetch(`/api/menu-analysis?${params}`);
       const data = await response.json();
-      setAnalysis(data);
+      setAnalysis(data.analysis);
     } catch (error) {
-      console.error('메뉴 분석 데이터 조회 실패:', error);
+      console.error('메뉴 분석 데이터 조회 중 오류 발생:', error);
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +154,7 @@ export default function MenuAnalysisPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {analysis?.popularity.map((item, index) => (
+                {analysis?.popularity?.map((item, index) => (
                   <div key={index} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
                     <div className="flex items-center gap-2">
                       <span className="font-semibold w-6">{index + 1}</span>

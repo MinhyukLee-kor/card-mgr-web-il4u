@@ -245,7 +245,7 @@ export const getExpenses = async (
     });
 
     const masters = masterResponse.data.values || [];
-    const details = detailResponse.data.values || [];
+    let details = detailResponse.data.values || [];
 
     // 날짜 필터링을 위한 시작일과 종료일
     const start = startDate ? new Date(startDate) : new Date(0);
@@ -675,26 +675,26 @@ export const getExpenseById = async (id: string, companyName: string) => {
 };
 
 // 메뉴 분석 데이터 조회
-export const getMenuAnalysis = async (startDate: string, endDate: string, viewType: string, userEmail?: string) => {
+export const getMenuAnalysis = async (startDate: string, endDate: string, viewType: string, companyName: string, userName?: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
     // 마스터 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2:H',  // H열(회사)까지 조회
     });
 
     // 디테일 데이터 조회
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:D',
+      range: '사용내역디테일!A2:E',  // E열(회사)까지 조회
     });
 
     const masters = masterResponse.data.values || [];
     const details = detailResponse.data.values || [];
 
-    // 날짜 범위 내의 데이터만 필터링
+    // 날짜 범위
     const start = new Date(startDate);
     const end = new Date(endDate);
 
@@ -702,27 +702,39 @@ export const getMenuAnalysis = async (startDate: string, endDate: string, viewTy
     const menuStats = new Map<string, { count: number; lastUsed: string }>();
     let totalCount = 0;
 
-    details.forEach(detail => {
+    // 필터링된 디테일 데이터만 사용
+    const filteredDetails = details.filter(detail => {
+      const masterId = detail[0];
+      const detailUserName = detail[1];  // 사용자 이름
+      const menu = detail[3];            // 메뉴
+      const detailCompany = detail[4];   // 회사명
+      
+      // 기본 필터: 메뉴가 있고, 같은 회사여야 함
+      if (!menu || detailCompany !== companyName) return false;
+
+      // 개인별 조회인 경우 사용자 이름으로 필터링
+      if (viewType === 'personal' && userName && detailUserName !== userName) {
+        return false;
+      }
+
+      // 날짜 범위 체크
+      const masterData = masters.find(m => m[0] === masterId);
+      if (!masterData) return false;
+
+      const useDate = new Date(masterData[1]);
+      return useDate >= start && useDate <= end;
+    });
+
+    // 필터링된 데이터로 통계 계산
+    filteredDetails.forEach(detail => {
       const masterId = detail[0];
       const menu = detail[3];
-      const userName = detail[1];
-      if (!menu) return;
-
       const masterData = masters.find(m => m[0] === masterId);
       if (!masterData) return;
 
-      // 개인별 조회인 경우 해당 사용자의 데이터만 필터링
-      if (viewType === 'personal' && userEmail) {
-        const detailEmail = masters.find(m => m[0] === masterId)?.[5];
-        if (detailEmail !== userEmail) return;
-      }
-
-      const useDate = new Date(masterData[1]);
-      if (useDate < start || useDate > end) return;
-
       const stats = menuStats.get(menu) || { count: 0, lastUsed: masterData[1] };
       stats.count++;
-      stats.lastUsed = new Date(stats.lastUsed) > useDate ? stats.lastUsed : masterData[1];
+      stats.lastUsed = new Date(stats.lastUsed) > new Date(masterData[1]) ? stats.lastUsed : masterData[1];
       menuStats.set(menu, stats);
       totalCount++;
     });
