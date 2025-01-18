@@ -473,12 +473,12 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
     // 2. 기존 데이터 삭제
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2:H',  // H열(회사)까지 조회
     });
 
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:D',
+      range: '사용내역디테일!A2:E',  // E열(회사)까지 조회
     });
 
     const masters = masterResponse.data.values || [];
@@ -490,19 +490,19 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
       return acc;
     }, []);
 
-    // 마스터 데이터 삭제
+    // 마스터 데이터 삭제 (H열까지)
     if (masterRowIndex !== -1) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역마스터!A${masterRowIndex + 2}:G${masterRowIndex + 2}`,
+        range: `사용내역마스터!A${masterRowIndex + 2}:H${masterRowIndex + 2}`,
       });
     }
 
-    // 디테일 데이터 삭제
+    // 디테일 데이터 삭제 (E열까지)
     for (const rowIndex of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역디테일!A${rowIndex}:D${rowIndex}`,
+        range: `사용내역디테일!A${rowIndex}:E${rowIndex}`,
       });
     }
 
@@ -516,12 +516,13 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
       totalAmount,
       expense.memo,
       expense.registrant?.email || expense.users[0].email,
-      expense.isCardUsage ? 'TRUE' : 'FALSE'
+      expense.isCardUsage ? 'TRUE' : 'FALSE',
+      expense.registrant?.companyName  // 회사명 추가
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2',
+      range: '사용내역마스터!A2:H',  // H열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [masterRow]
@@ -533,12 +534,13 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
       id,
       user.name,
       user.amount,
-      user.customMenu || user.menu || ''
+      user.customMenu || user.menu || '',
+      expense.registrant?.companyName  // 회사명 추가
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2',
+      range: '사용내역디테일!A2:E',  // E열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: detailRows
@@ -621,13 +623,13 @@ export const getExpenseById = async (id: string, companyName: string) => {
     // 마스터 데이터 조회
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2:H',  // H열(회사)까지 조회
     });
 
     // 디테일 데이터 조회
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:D',
+      range: '사용내역디테일!A2:E',  // E열(회사)까지 조회
     });
 
     // 메뉴 목록 조회
@@ -646,7 +648,8 @@ export const getExpenseById = async (id: string, companyName: string) => {
       date: masterRow[1],
       registrant: {
         name: masterRow[2],
-        email: masterRow[5]
+        email: masterRow[5],
+        companyName: masterRow[7]  // 회사명 추가
       },
       amount: parseInt(masterRow[3]),
       memo: masterRow[4],
@@ -654,8 +657,8 @@ export const getExpenseById = async (id: string, companyName: string) => {
       users: detailRows.map(row => ({
         name: row[1],
         amount: parseInt(row[2]),
-        menu: row[3] || '', // 메뉴 정보 추가
-        customMenu: row[3] && !menus.includes(row[3]) ? row[3] : undefined // 기타 메뉴인 경우
+        menu: row[3] || '',
+        customMenu: row[3] && !menus.includes(row[3]) ? row[3] : undefined
       }))
     };
   } catch (error) {

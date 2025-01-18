@@ -46,9 +46,7 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const body = await request.json();
     const userCookie = cookies().get('user');
-    
     if (!userCookie) {
       return NextResponse.json(
         { message: '로그인이 필요합니다.' },
@@ -57,36 +55,20 @@ export async function PUT(
     }
 
     const user = JSON.parse(userCookie.value);
-    
-    // 권한 체크
-    const expense = await getExpenseById(params.id, user.companyName);
-    if (!expense) {
-      return NextResponse.json(
-        { message: '사용 내역을 찾을 수 없습니다.' },
-        { status: 404 }
-      );
-    }
-    
-    try {
-      checkPermission(expense, user.email);
-    } catch (error: any) {
-      return NextResponse.json(
-        { message: error.message },
-        { status: 403 }
-      );
-    }
+    const data = await request.json();
 
-    await updateExpense(params.id, {
-      ...body,
+    // 등록자 정보에 회사명 추가
+    const expense = {
+      ...data,
       registrant: {
         email: user.email,
-        name: user.name
+        name: user.name,
+        companyName: user.companyName  // 회사명 추가
       }
-    });
+    };
 
-    return NextResponse.json({
-      message: '사용 내역이 수정되었습니다.'
-    });
+    await updateExpense(params.id, expense);
+    return NextResponse.json({ message: '수정되었습니다.' });
   } catch (error) {
     console.error('사용 내역 수정 중 오류 발생:', error);
     return NextResponse.json(
