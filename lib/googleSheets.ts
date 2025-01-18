@@ -402,12 +402,23 @@ export const getExpenses = async (
           return (a.memo || '').localeCompare(b.memo || '', 'ko');
         });
     } else {
-      // 사용자 기준 조회 (디테일 테이블 기준)
-      const userDetails = filteredData
+      if (!currentUser) return [];  // 현재 사용자 정보가 없으면 빈 배열 반환
+
+      return filteredData
+        .filter(expense => {
+          const userDetail = details.find(detail => 
+            detail[0] === expense.id && 
+            detail[1] === currentUser[1] && 
+            detail[4] === companyName
+          );
+          return userDetail !== undefined;
+        })
         .map(expense => {
-          // 해당 사용자의 디테일 정보만 찾기
-          const userDetail = expense.users.find(user => user.name === userEmail);
-          if (!userDetail) return null;
+          // 해당 사용자의 디테일 정보 찾기
+          const userDetail = details.find(detail => 
+            detail[0] === expense.id && 
+            detail[1] === currentUser[1]
+          );
 
           return {
             id: expense.id,
@@ -416,13 +427,16 @@ export const getExpenses = async (
               name: expense.registrant.name,
               email: expense.registrant.email
             },
-            amount: userDetail.amount,  // 해당 사용자의 금액만
+            amount: parseInt(userDetail?.[2] || '0'),  // 해당 사용자의 금액
             memo: expense.memo,
             isCardUsage: expense.isCardUsage,
-            users: [userDetail]  // 해당 사용자의 정보만
+            users: [{
+              name: currentUser[1],
+              amount: parseInt(userDetail?.[2] || '0'),
+              menu: userDetail?.[3] || ''
+            }]
           };
         })
-        .filter((expense): expense is NonNullable<typeof expense> => expense !== null)
         .sort((a, b) => {
           // 1. 날짜 기준 내림차순
           const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
@@ -431,8 +445,6 @@ export const getExpenses = async (
           // 2. 날짜가 같으면 사용내역 기준 오름차순
           return (a.memo || '').localeCompare(b.memo || '', 'ko');
         });
-
-      return userDetails;
     }
   } catch (error) {
     console.error('사용 내역 조회 중 오류 발생:', error);
