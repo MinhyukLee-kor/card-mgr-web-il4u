@@ -147,10 +147,10 @@ export default function MenuAnalysisPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* 메뉴 선호도 순위 */}
+          {/* 메뉴 순위 */}
           <Card>
             <CardHeader>
-              <CardTitle>메뉴 선호도 순위</CardTitle>
+              <CardTitle>즐겨먹는 맘마</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -172,7 +172,7 @@ export default function MenuAnalysisPage() {
           {/* 먹을 때 된 메뉴 */}
           <Card>
             <CardHeader>
-              <CardTitle>먹을 때 된 메뉴</CardTitle>
+              <CardTitle>생각나는 맘마</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
