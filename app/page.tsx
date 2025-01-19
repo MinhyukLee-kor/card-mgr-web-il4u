@@ -82,8 +82,8 @@ export default function HomePage() {
   const noticesFetched = useRef(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [monthlyUsage, setMonthlyUsage] = useState(0);
-  const MONTHLY_LIMIT = 200000;
   const [userCompany, setUserCompany] = useState<string>('');
+  const MONTHLY_LIMIT = userCompany === '아이엘포유' ? 200000 : 250000;
 
   useEffect(() => {
     const getUserFromCookie = () => {
@@ -233,12 +233,9 @@ export default function HomePage() {
       </div>
 
       {/* 사용 현황 차트 */}
-      {userCompany === "아이엘포유" && (
-        <div className="px-4 sm:px-0">
-          <UsageChart usage={monthlyUsage} limit={MONTHLY_LIMIT} />
-        </div>
-      )}
-
+      <div className="px-4 sm:px-0">
+        <UsageChart usage={monthlyUsage} limit={MONTHLY_LIMIT} />
+      </div>
       {/* 메인 메뉴 섹션 */}
       <div className="px-4 sm:px-0">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto">
