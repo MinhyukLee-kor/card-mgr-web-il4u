@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Receipt, BarChart, Settings, Bell } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { Button } from "@/components/ui/button";
 
 interface User {
   email: string;
@@ -74,6 +75,17 @@ const UsageChart = ({ usage, limit }: UsageChartProps) => {
   );
 };
 
+const NoticesSkeleton = () => (
+  <div className="animate-pulse space-y-2">
+    {[1, 2, 3].map((i) => (
+      <div key={i} className="flex justify-between items-center gap-2">
+        <div className="h-3 bg-gray-200 rounded w-3/4"></div>
+        <div className="h-3 bg-gray-200 rounded w-20"></div>
+      </div>
+    ))}
+  </div>
+);
+
 export default function HomePage() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
@@ -84,6 +96,9 @@ export default function HomePage() {
   const [monthlyUsage, setMonthlyUsage] = useState(0);
   const [userCompany, setUserCompany] = useState<string>('');
   const MONTHLY_LIMIT = userCompany === '아이엘포유' ? 200000 : 250000;
+  const [error, setError] = useState<string | null>(null);
+
+  const CACHE_EXPIRY = 5 * 60 * 1000; // 5분
 
   useEffect(() => {
     const getUserFromCookie = () => {
@@ -111,42 +126,49 @@ export default function HomePage() {
     getUserFromCookie();
   }, []);
 
-  useEffect(() => {
-    const fetchNotices = async () => {
-      if (noticesFetched.current) return;
+  const fetchNotices = useCallback(async () => {
+    const cacheKey = `notices_${userCompany}`;
+    const cachedData = sessionStorage.getItem(cacheKey);
+    
+    if (cachedData) {
+      const { data, timestamp } = JSON.parse(cachedData);
+      const isExpired = Date.now() - timestamp > CACHE_EXPIRY;
       
-      try {
-        // sessionStorage에서 캐시된 공지사항 확인
-        const cachedNotices = sessionStorage.getItem('notices');
-        if (cachedNotices) {
-          setNotices(JSON.parse(cachedNotices));
-          setIsNoticeLoading(false);
-          noticesFetched.current = true;
-          return;
-        }
-
-        setIsNoticeLoading(true);
-        const response = await fetch('/api/notices', {
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate',
-            'Pragma': 'no-cache'
-          }
-        });
-        const data = await response.json();
-        setNotices(data.notices);
-        
-        // 공지사항을 sessionStorage에 저장
-        sessionStorage.setItem('notices', JSON.stringify(data.notices));
-        noticesFetched.current = true;
-      } catch (error) {
-        console.error('공지사항 조회 실패:', error);
-      } finally {
+      if (!isExpired) {
+        setNotices(data);
         setIsNoticeLoading(false);
+        return;
       }
-    };
+    }
 
+    if (noticesFetched.current) return;
+    
+    try {
+      const userCompany = user?.companyName;
+      if (!userCompany) return;
+
+      setIsNoticeLoading(true);
+      const response = await fetch('/api/notices');
+      const data = await response.json();
+      setNotices(data.notices);
+      
+      sessionStorage.setItem(cacheKey, JSON.stringify({
+        data: data.notices,
+        timestamp: Date.now()
+      }));
+      noticesFetched.current = true;
+    } catch (error) {
+      console.error('공지사항 조회 실패:', error);
+      setError('공지사항을 불러오는데 실패했습니다.');
+      setNotices([]);
+    } finally {
+      setIsNoticeLoading(false);
+    }
+  }, [user?.companyName, userCompany, CACHE_EXPIRY]);
+
+  useEffect(() => {
     fetchNotices();
-  }, []);
+  }, [fetchNotices]);
 
   useEffect(() => {
     const fetchMonthlyUsage = async () => {
@@ -191,6 +213,11 @@ export default function HomePage() {
     return `${year}-${month}-${day}`;
   };
 
+  // 날짜 기준 내림차순 정렬
+  const sortedNotices = notices.sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+
   return (
     <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4 mb-4">
       {/* 공지사항 섹션 */}
@@ -202,16 +229,10 @@ export default function HomePage() {
           </div>
           <div className="min-h-[30px]">
             {isNoticeLoading ? (
-              <div className="flex items-center justify-center h-[100px]">
-                <div className="animate-pulse space-y-2 w-full">
-                  <div className="h-3 bg-gray-200 rounded w-3/4"></div>
-                  <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-                  <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-                </div>
-              </div>
+              <NoticesSkeleton />
             ) : notices.length > 0 ? (
               <div className="space-y-2">
-                {notices.map((notice, index) => (
+                {sortedNotices.map((notice, index) => (
                   <div 
                     key={index}
                     className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b last:border-0 pb-2 last:pb-0 gap-1"
@@ -282,6 +303,13 @@ export default function HomePage() {
         onClose={() => setIsPasswordModalOpen(false)}
         forceChange={!user?.passwordChangedAt}
       />
+
+      {/* 에러 메시지 표시 */}
+      {error && (
+        <div className="text-sm text-red-500 text-center p-2">
+          {error}
+        </div>
+      )}
     </div>
   );
 }
