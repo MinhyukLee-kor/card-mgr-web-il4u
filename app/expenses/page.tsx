@@ -39,8 +39,6 @@ export default function ExpensesPage() {
   const [selectedExpenseTypes, setSelectedExpenseTypes] = useState<ExpenseType[]>(['전체']);
   const [searchText, setSearchText] = useState('');
   const [appliedSearchKeyword, setAppliedSearchKeyword] = useState('');
-  const [monthlyUsage, setMonthlyUsage] = useState<number>(0);
-  const [isTooltipOpen, setIsTooltipOpen] = useState(false);
   const [userCompany, setUserCompany] = useState<string>('');
 
   // 현 의 시작일과 마지막 날을 계산
@@ -203,43 +201,6 @@ export default function ExpensesPage() {
       return newTypes;
     });
   };
-
-  // 당월 사용 금액 조회 함수
-  const fetchMonthlyUsage = async () => {
-    try {
-      const now = new Date();
-      const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      
-      const formatDate = (date: Date) => {
-        return date.toISOString().split('T')[0];
-      };
-
-      const params = new URLSearchParams({
-        startDate: formatDate(firstDay),
-        endDate: formatDate(lastDay),
-        viewType: 'user',
-        expenseTypes: '점심식대,저녁식대,차대'
-      });
-
-      const response = await fetch(`/api/expenses?${params}`);
-      const data = await response.json();
-
-      if (response.ok) {
-        const total = data.expenses.reduce((sum: number, expense: Expense) => {
-          return sum + expense.amount;
-        }, 0);
-        setMonthlyUsage(total);
-      }
-    } catch (error) {
-      console.error('사용 금액 조회 중 오류 발생:', error);
-    }
-  };
-
-  // 컴포넌트 마운트 시 사용 금액 조회
-  useEffect(() => {
-    fetchMonthlyUsage();
-  }, []);
 
   return (
     <>
@@ -513,43 +474,11 @@ export default function ExpensesPage() {
               </div>
             </div>
 
-            {expenses.length > 0 && userCompany === "아이엘포유" && (
+            {expenses.length > 0 && (
               <div className="mt-4 p-4 bg-gray-100 rounded-lg">
                 <div className="flex flex-col sm:flex-row sm:justify-between gap-2">
                   <div className="font-semibold">
                     총액: {formatAmount(totalAmount)}
-                  </div>
-                  <div className="font-semibold flex flex-row items-center gap-1">
-                    <div className="relative">
-                      <Info 
-                        className="h-4 w-4 cursor-pointer hover:text-gray-600" 
-                        onClick={() => setIsTooltipOpen(true)}
-                      />
-                      {isTooltipOpen && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center sm:absolute sm:inset-auto sm:bottom-full sm:right-0 sm:mb-2 sm:bg-transparent">
-                          <div className="bg-black text-white text-xs rounded-lg p-3 mx-4 max-w-[280px] sm:w-72 relative">
-                            <button 
-                              onClick={() => setIsTooltipOpen(false)}
-                              className="absolute top-1 right-1 text-white hover:text-gray-300"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                            해당 금액은 팀운영비 한도 20만원에<br />
-                            대한 금액 입니다.<br />
-                            (점심식대 + 저녁식대 + 차대)
-                            <div className="hidden sm:block absolute bottom-0 right-2 transform translate-y-1/2 rotate-45 w-2 h-2 bg-black"></div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex flex-row items-center gap-1">
-                      <span className={monthlyUsage > 200000 ? 'text-red-600' : 'text-green-600'}>
-                        사용: {formatAmount(monthlyUsage)}
-                      </span>
-                      <span className={+monthlyUsage > 200000 ? 'text-red-600' : 'text-green-600'}>
-                        (잔액: {formatAmount(200000 - monthlyUsage)})
-                      </span>
-                    </div>
                   </div>
                 </div>
               </div>
