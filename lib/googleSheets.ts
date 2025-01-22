@@ -366,9 +366,7 @@ export const getExpenses = async (
         .filter(master => {
           const date = new Date(master[1]);
           const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
-          const userMatch = !selectedUser || selectedUser === '' || details.some(detail => 
-            detail[0] === master[0] && detail[1] === selectedUser
-          );
+          const userMatch = !selectedUser || selectedUser === '';  // 사용자 필터링은 디테일 단계에서 처리
           
           // expenseTypes 필터링 추가
           let expenseTypeMatch = true;
@@ -379,11 +377,15 @@ export const getExpenses = async (
                 !['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].includes(master[4]));
           }
           
-          return date >= start && date <= end && cardUsageMatch && userMatch && expenseTypeMatch;
+          return date >= start && date <= end && cardUsageMatch && expenseTypeMatch;
         })
         .flatMap(master => {
           // 해당 마스터 ID의 디테일 데이터 찾기
-          const masterDetails = details.filter(detail => detail[0] === master[0]);
+          const masterDetails = details.filter(detail => 
+            detail[0] === master[0] && 
+            // 사용자 필터링을 여기서 적용
+            (!selectedUser || selectedUser === '' || detail[1] === selectedUser)
+          );
           
           // 디테일 데이터 기준으로 변환
           return masterDetails.map(detail => ({
