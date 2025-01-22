@@ -362,14 +362,24 @@ export const getExpenses = async (
 
     } else if (viewType === 'admin') {
       // 디테일 테이블 기준으로 조회하도록 수정
-      return filteredMasters
+      let filteredData = filteredMasters
         .filter(master => {
           const date = new Date(master[1]);
           const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
           const userMatch = !selectedUser || selectedUser === '' || details.some(detail => 
             detail[0] === master[0] && detail[1] === selectedUser
           );
-          return date >= start && date <= end && cardUsageMatch && userMatch;
+          
+          // expenseTypes 필터링 추가
+          let expenseTypeMatch = true;
+          if (expenseTypes && expenseTypes !== '전체') {
+            const types = expenseTypes.split(',');
+            expenseTypeMatch = types.includes(master[4]) || // 기본 타입 체크
+              (types.includes('기타') && // 기타 타입 체크
+                !['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].includes(master[4]));
+          }
+          
+          return date >= start && date <= end && cardUsageMatch && userMatch && expenseTypeMatch;
         })
         .flatMap(master => {
           // 해당 마스터 ID의 디테일 데이터 찾기
@@ -401,6 +411,8 @@ export const getExpenses = async (
           // 2. 날짜가 같으면 사용내역 기준 오름차순
           return (a.memo || '').localeCompare(b.memo || '', 'ko');
         });
+
+      return filteredData;
     } else if (viewType === 'registrant') {
       // 등록자 기준 조회
       return filteredData
