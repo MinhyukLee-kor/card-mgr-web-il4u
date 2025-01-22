@@ -255,7 +255,7 @@ export const getExpenses = async (
     const end = endDate ? new Date(endDate) : new Date();
 
     // 기존 필터 로직 유지
-    const filteredData = filteredMasters
+    let filteredData = filteredMasters
       .filter(row => {
         const date = new Date(row[1]);
         const cardUsageMatch = isCardUsage === undefined ? true : (row[6] === 'TRUE') === isCardUsage;
@@ -284,6 +284,21 @@ export const getExpenses = async (
         };
       })
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // expenseTypes 필터링 추가
+    if (expenseTypes && expenseTypes !== '전체') {
+      const types = expenseTypes.split(',');
+      filteredData = filteredData.filter(expense => {
+        // '기타'가 포함된 경우 특별 처리
+        if (types.includes('기타')) {
+          const standardTypes = ['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'];
+          if (!standardTypes.includes(expense.memo)) {
+            return true;
+          }
+        }
+        return types.includes(expense.memo);
+      });
+    }
 
     // 사용자별 합계 계산
     const userSummary = filteredData
