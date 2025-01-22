@@ -312,7 +312,7 @@ export const getExpenses = async (
 
     if (viewType === 'admin-summary') {
       // 사용자별 합계 조회
-      let filteredData = filteredMasters
+      const filteredData = filteredMasters
         .filter(master => {
           const date = new Date(master[1]);
           const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
