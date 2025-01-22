@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Receipt, BarChart, Settings, Bell } from 'lucide-react';
+import { Receipt, BarChart, Settings, Bell, Plus } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from "@/components/ui/button";
@@ -296,6 +296,17 @@ export default function HomePage() {
           )}
         </div>
       </div>
+
+      {/* 플로팅 액션 버튼 추가 */}
+      <button
+        onClick={() => router.push('/expenses/create')}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 hover:bg-blue-700 
+                   text-white rounded-full shadow-lg flex items-center justify-center 
+                   transition-colors duration-200 z-50"
+        aria-label="사용내역 등록"
+      >
+        <Plus className="h-6 w-6" />
+      </button>
 
       {/* 비밀번호 변경 모달 */}
       <ChangePasswordModal
