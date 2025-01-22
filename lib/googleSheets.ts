@@ -365,7 +365,7 @@ export const getExpenses = async (
         .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
     } else if (viewType === 'admin') {
       // 디테일 테이블 기준으로 조회하도록 수정
-      let filteredData = filteredMasters
+      const filteredData = filteredMasters
         .filter(master => {
           const date = new Date(master[1]);
           const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
