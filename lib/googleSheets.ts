@@ -361,29 +361,38 @@ export const getExpenses = async (
       .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
 
     } else if (viewType === 'admin') {
-      // 관리자는 마스터 내역만 기준으로 조회
+      // 디테일 테이블 기준으로 조회하도록 수정
       return filteredMasters
-        .filter(row => {
-          const date = new Date(row[1]);
-          const cardUsageMatch = isCardUsage === undefined ? true : (row[6] === 'TRUE') === isCardUsage;
-          const userMatch = !selectedUser || selectedUser === '' || row[2] === selectedUser;  // 등록자 이름으로 필터링
+        .filter(master => {
+          const date = new Date(master[1]);
+          const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
+          const userMatch = !selectedUser || selectedUser === '' || details.some(detail => 
+            detail[0] === master[0] && detail[1] === selectedUser
+          );
           return date >= start && date <= end && cardUsageMatch && userMatch;
         })
-        .map(row => ({
-          id: row[0],
-          date: row[1],
-          registrant: {
-            name: row[2],
-            email: row[5]
-          },
-          amount: parseInt(row[3]),
-          memo: row[4],
-          isCardUsage: row[6] === 'TRUE',
-          users: [{  // 등록자 정보를 users 배열에 포함
-            name: row[2],  // 등록자 이름
-            amount: parseInt(row[3])  // 총액
-          }]
-        }))
+        .flatMap(master => {
+          // 해당 마스터 ID의 디테일 데이터 찾기
+          const masterDetails = details.filter(detail => detail[0] === master[0]);
+          
+          // 디테일 데이터 기준으로 변환
+          return masterDetails.map(detail => ({
+            id: master[0],
+            date: master[1],
+            registrant: {
+              name: master[2],
+              email: master[5]
+            },
+            amount: parseInt(detail[2]), // 디테일의 금액
+            memo: master[4],
+            isCardUsage: master[6] === 'TRUE',
+            users: [{
+              name: detail[1],  // 디테일의 사용자 이름
+              amount: parseInt(detail[2]),  // 디테일의 금액
+              menu: detail[3] || ''  // 디테일의 메뉴
+            }]
+          }));
+        })
         .sort((a, b) => {
           // 1. 날짜 기준 내림차순
           const dateCompare = new Date(b.date).getTime() - new Date(a.date).getTime();
