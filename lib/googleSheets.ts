@@ -311,55 +311,58 @@ export const getExpenses = async (
       }, {});
 
     if (viewType === 'admin-summary') {
-      // 먼저 같은 회사의 활성 사용자 목록을 가져옴
-      const activeUsers = users
-        .filter(user => 
-          user[4] === 'TRUE' && // isActive가 TRUE인 사용자만
-          user[6] === companyName // 같은 회사인 사용자만
-        )
-        .map(user => user[1]); // 사용자 이름만 추출
-
-      // 선택된 사용자가 있으면 해당 사용자만 포함
-      const targetUsers = selectedUser ? [selectedUser] : activeUsers;
-
-      // 사용자별 합계 계산 (디테일 데이터 기준으로 수정)
-      const userSummary = details
-        .filter(detail => {
-          const masterId = detail[0];
-          const masterData = masters.find(m => m[0] === masterId);
-          if (!masterData) return false;
-
-          // 날짜 필터링 추가
-          const useDate = new Date(masterData[1]);
-          return detail[4] === companyName && // 같은 회사의 데이터만
-                 useDate >= start && useDate <= end; // 날짜 범위 체크
-        })
-        .reduce((acc: { [key: string]: number }, detail) => {
-          const userName = detail[1];  // 디테일의 사용자 이름
-          const amount = parseInt(detail[2]);  // 디테일의 금액
+      // 사용자별 합계 조회
+      let filteredData = filteredMasters
+        .filter(master => {
+          const date = new Date(master[1]);
+          const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
           
-          acc[userName] = (acc[userName] || 0) + amount;
-          return acc;
-        }, {});
+          // expenseTypes 필터링 추가
+          let expenseTypeMatch = true;
+          if (expenseTypes && expenseTypes !== '전체') {
+            const types = expenseTypes.split(',');
+            expenseTypeMatch = types.includes(master[4]) || // 기본 타입 체크
+              (types.includes('기타') && // 기타 타입 체크
+                !['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].includes(master[4]));
+          }
+          
+          return date >= start && date <= end && cardUsageMatch && expenseTypeMatch;
+        });
+
+      // 디테일 데이터에서 사용자별 합계 계산
+      const userSummary: { [key: string]: number } = {};
+      
+      filteredData.forEach(master => {
+        const masterDetails = details.filter(detail => detail[0] === master[0]);
+        masterDetails.forEach(detail => {
+          const userName = detail[1];
+          const amount = parseInt(detail[2]);
+          userSummary[userName] = (userSummary[userName] || 0) + amount;
+        });
+      });
+
+      // 선택된 사용자 필터링 적용
+      const targetUsers = Object.keys(userSummary)
+        .filter(userName => !selectedUser || selectedUser === '' || userName === selectedUser);
 
       // 모든 활성 사용자에 대해 결과 생성
-      return targetUsers.map(userName => ({
-        id: userName,
-        date: '',
-        registrant: {
-          name: '',
-          email: ''
-        },
-        amount: userSummary[userName] || 0,
-        memo: '',
-        isCardUsage: false,
-        users: [{
-          name: userName,
-          amount: userSummary[userName] || 0
-        }]
-      }))
-      .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
-
+      return targetUsers
+        .map(userName => ({
+          id: userName,
+          date: '',
+          registrant: {
+            name: '',
+            email: ''
+          },
+          amount: userSummary[userName] || 0,
+          memo: '',
+          isCardUsage: false,
+          users: [{
+            name: userName,
+            amount: userSummary[userName] || 0
+          }]
+        }))
+        .sort((a, b) => a.users[0].name.localeCompare(b.users[0].name, 'ko'));
     } else if (viewType === 'admin') {
       // 디테일 테이블 기준으로 조회하도록 수정
       let filteredData = filteredMasters
