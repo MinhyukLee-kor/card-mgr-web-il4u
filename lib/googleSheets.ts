@@ -613,43 +613,43 @@ export const deleteExpense = async (id: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    // 1. 마스터 데이터 삭제
+    // 마스터 테이블에서 해당 ID의 행 찾기
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:G',
+      range: '사용내역마스터!A2:H'  // H열(회사)까지 범위 확장
     });
-
+    
     const masterRows = masterResponse.data.values || [];
     const masterRowIndex = masterRows.findIndex(row => row[0] === id);
-
-    if (masterRowIndex !== -1) {
-      await sheets.spreadsheets.values.clear({
-        spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역마스터!A${masterRowIndex + 2}:G${masterRowIndex + 2}`,
-      });
+    
+    if (masterRowIndex === -1) {
+      throw new Error('삭제할 내역을 찾을 수 없습니다.');
     }
 
-    // 2. 디테일 데이터 삭제
-    const detailResponse = await sheets.spreadsheets.values.get({
+    // 마스터 테이블에서 행 삭제
+    await sheets.spreadsheets.values.clear({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:D', // D열까지 조회
+      range: `사용내역마스터!A${masterRowIndex + 2}:H${masterRowIndex + 2}`  // H열까지 삭제
     });
 
+    // 디테일 테이블에서 해당 ID의 모든 행 찾기
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:E'  // E열(회사)까지 범위 확장
+    });
+    
     const detailRows = detailResponse.data.values || [];
-    const detailRowIndexes = detailRows.reduce((acc: number[], row, index) => {
-      if (row[0] === id) acc.push(index + 2);
-      return acc;
-    }, []);
+    const detailRowIndexes = detailRows
+      .map((row, index) => row[0] === id ? index : -1)
+      .filter(index => index !== -1);
 
-    // 디테일 데이터 삭제 (D열까지 포함)
-    for (const rowIndex of detailRowIndexes) {
+    // 디테일 테이블에서 관련된 모든 행 삭제
+    for (const index of detailRowIndexes) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역디테일!A${rowIndex}:D${rowIndex}`,
+        range: `사용내역디테일!A${index + 2}:E${index + 2}`  // E열까지 삭제
       });
     }
-
-    return true;
   } catch (error) {
     console.error('사용 내역 삭제 중 오류 발생:', error);
     throw error;
