@@ -174,16 +174,25 @@ export default function HomePage() {
     const fetchMonthlyUsage = async () => {
       try {
         const now = new Date();
+        // 현재 달의 첫날 (시간을 00:00:00으로 설정)
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        firstDay.setHours(0, 0, 0, 0);
+        
+        // 다음 달의 첫날 - 1 (현재 달의 마지막 날, 시간을 23:59:59로 설정)
         const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        lastDay.setHours(23, 59, 59, 999);
+        
+        // 한국 시간으로 변환
+        const koreaFirstDay = new Date(firstDay.getTime() + (9 * 60 * 60 * 1000));
+        const koreaLastDay = new Date(lastDay.getTime() + (9 * 60 * 60 * 1000));
         
         const formatDate = (date: Date) => {
           return date.toISOString().split('T')[0];
         };
 
         const params = new URLSearchParams({
-          startDate: formatDate(firstDay),
-          endDate: formatDate(lastDay),
+          startDate: formatDate(koreaFirstDay),
+          endDate: formatDate(koreaLastDay),
           viewType: 'user',
           expenseTypes: '점심식대,저녁식대,차대'
         });
