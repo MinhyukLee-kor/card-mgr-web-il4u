@@ -15,7 +15,10 @@ export async function GET(_request: NextRequest) {
     const user = JSON.parse(userCookie.value);
     const menus = await getAllMenus(user.companyName);
     
-    return NextResponse.json({ menus });
+    // 메뉴 이름만 추출하여 반환
+    const menuNames = menus.map(menu => menu.name);
+    
+    return NextResponse.json({ menus: menuNames });
   } catch (error) {
     console.error('메뉴 목록 조회 중 오류 발생:', error);
     return NextResponse.json(

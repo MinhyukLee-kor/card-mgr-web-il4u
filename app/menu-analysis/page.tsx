@@ -5,6 +5,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Loading } from "@/components/ui/loading";
+import { MenuRoulette } from '@/components/MenuRoulette';
 
 type ViewType = 'personal' | 'all';
 
@@ -28,6 +29,7 @@ export default function MenuAnalysisPage() {
   const [analysis, setAnalysis] = useState<MenuAnalysis | null>(null);
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
   const [userEmail, setUserEmail] = useState('');
+  const [menus, setMenus] = useState<string[]>([]);
 
   useEffect(() => {
     // 현재 로그인한 사용자 정보 가져오기
@@ -61,6 +63,35 @@ export default function MenuAnalysisPage() {
     
     setEndDate(end.toISOString().split('T')[0]);
     setStartDate(start.toISOString().split('T')[0]);
+
+    // 메뉴 목록 가져오기
+    const fetchMenus = async () => {
+      try {
+        const response = await fetch('/api/menus', {
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('메뉴 목록을 가져오는데 실패했습니다.');
+        }
+        
+        const data = await response.json();
+        
+        if (Array.isArray(data.menus)) {
+          setMenus(data.menus);
+        } else {
+          console.error('메뉴 데이터가 배열이 아님:', data);
+        }
+      } catch (error) {
+        console.error('메뉴 목록 조회 중 오류 발생:', error);
+      }
+    };
+
+    fetchMenus();
   }, []);
 
   const fetchAnalysis = async () => {
@@ -94,6 +125,9 @@ export default function MenuAnalysisPage() {
     <>
       {isLoading && <Loading />}
       <div className="container mx-auto py-4 px-2 sm:py-10 sm:px-4">
+        {/* 메뉴 룰렛 추가 */}
+        <MenuRoulette menus={menus} />
+
         <div className="space-y-4 mb-6">
           {/* 날짜 선택 */}
           <div className="flex gap-2">

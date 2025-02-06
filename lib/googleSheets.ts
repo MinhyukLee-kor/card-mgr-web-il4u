@@ -102,17 +102,20 @@ export const getAllMenus = async (companyName: string) => {
   try {
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '메뉴!A2:D',  // D열(회사)까지 조회
-      valueRenderOption: 'UNFORMATTED_VALUE',
-      dateTimeRenderOption: 'FORMATTED_STRING'
+      range: '메뉴!A2:D'  // A: 메뉴명, D: 회사명
     });
 
     const rows = response.data.values || [];
-    // 빈 값 제외, 같은 회사만, 가나다순 정렬
-    return rows
-      .filter(row => row[0] && row[3] === companyName)  // 메뉴명이 있고 같은 회사인 것만
-      .map(row => row[0])
-      .sort((a, b) => a.localeCompare(b, 'ko')); // 가나다순 정렬
+    
+    // 해당 회사의 메뉴만 필터링
+    const companyMenus = rows
+      .filter(row => row[3] === companyName)  // 회사명이 일치하는 것만
+      .map(row => ({
+        name: row[0]  // 메뉴명만 반환
+      }))
+      .filter(menu => menu.name); // 빈 메뉴명 제외
+
+    return companyMenus;
   } catch (error) {
     console.error('메뉴 목록 조회 중 오류 발생:', error);
     throw error;
