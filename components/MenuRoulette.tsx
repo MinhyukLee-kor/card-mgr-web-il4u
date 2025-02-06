@@ -39,7 +39,8 @@ export function MenuRoulette({ menus }: MenuRouletteProps) {
     // 스핀 애니메이션 시작
     if (spinnerRef.current) {
       spinnerRef.current.style.animation = 'none';
-      spinnerRef.current.offsetHeight; // 리플로우 강제
+      // 변수에 할당하여 사용
+      const _ = spinnerRef.current.offsetHeight; // 리플로우 강제
       spinnerRef.current.style.animation = `spin ${duration}ms cubic-bezier(0.5, 0, 0.5, 1)`;
     }
 

@@ -378,19 +378,18 @@ export const getExpenses = async (
           let expenseTypeMatch = true;
           if (expenseTypes && expenseTypes !== '전체') {
             const types = expenseTypes.split(',');
-            expenseTypeMatch = types.includes(master[4]) || // 기본 타입 체크
-              (types.includes('기타') && // 기타 타입 체크
+            expenseTypeMatch = types.includes(master[4]) || 
+              (types.includes('기타') && 
                 !['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].includes(master[4]));
           }
           
           return date >= start && date <= end && cardUsageMatch && expenseTypeMatch;
         })
         .flatMap(master => {
-          // 해당 마스터 ID의 디테일 데이터 찾기
+          // 디테일 테이블에서 해당 마스터 ID의 모든 행 찾기
           const masterDetails = details.filter(detail => 
             detail[0] === master[0] && 
-            // 사용자 필터링을 여기서 적용
-            (_userMatch || detail[1] === selectedUser)
+            (!selectedUser || selectedUser === '' || detail[1] === selectedUser)
           );
           
           // 디테일 데이터 기준으로 변환
