@@ -51,6 +51,23 @@ export function MenuRoulette({ menus }: MenuRouletteProps) {
     }, duration);
   };
 
+  // useEffect를 사용하여 스타일 추가
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes spin {
+        0% { transform: rotateX(0); }
+        100% { transform: rotateX(720deg); }
+      }
+    `;
+    document.head.appendChild(style);
+
+    // 컴포넌트 언마운트 시 스타일 제거
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -131,14 +148,4 @@ export function MenuRoulette({ menus }: MenuRouletteProps) {
       </CardContent>
     </Card>
   );
-}
-
-// 전역 스타일 추가
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes spin {
-    0% { transform: rotateX(0); }
-    100% { transform: rotateX(720deg); }
-  }
-`;
-document.head.appendChild(style); 
+} 

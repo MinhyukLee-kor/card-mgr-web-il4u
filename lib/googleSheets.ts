@@ -221,7 +221,7 @@ export const getExpenses = async (
   viewType: 'registrant' | 'user' | 'admin' | 'admin-summary' = 'registrant',
   selectedUser?: string,
   expenseTypes?: string,
-  searchKeyword?: string
+  _searchKeyword?: string  // 언더스코어 추가
 ) => {
   const sheets = getGoogleSheetClient();
 
@@ -304,7 +304,7 @@ export const getExpenses = async (
     }
 
     // 사용자별 합계 계산
-    const userSummary = filteredData
+    const _userSummary = filteredData
       .reduce((acc: { [key: string]: number }, expense) => {
         const userName = expense.registrant.name;
         const amount = expense.amount;
@@ -372,7 +372,7 @@ export const getExpenses = async (
         .filter(master => {
           const date = new Date(master[1]);
           const cardUsageMatch = isCardUsage === undefined ? true : (master[6] === 'TRUE') === isCardUsage;
-          const userMatch = !selectedUser || selectedUser === '';  // 사용자 필터링은 디테일 단계에서 처리
+          const _userMatch = !selectedUser || selectedUser === '';  // 또는 실제로 사용하도록 수정
           
           // expenseTypes 필터링 추가
           let expenseTypeMatch = true;
@@ -390,7 +390,7 @@ export const getExpenses = async (
           const masterDetails = details.filter(detail => 
             detail[0] === master[0] && 
             // 사용자 필터링을 여기서 적용
-            (!selectedUser || selectedUser === '' || detail[1] === selectedUser)
+            (_userMatch || detail[1] === selectedUser)
           );
           
           // 디테일 데이터 기준으로 변환
