@@ -24,6 +24,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
   const { register, handleSubmit, formState: { errors }, setValue } = useForm<ExpenseForm>();
   const [menus, setMenus] = useState<string[]>([]);
+  const [isDrinking, setIsDrinking] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -62,6 +63,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
           setValue('memo', expense.memo);
           setUsers(expense.users);
           setIsCardUsage(expense.isCardUsage);
+          setIsDrinking(expense.isDrinking);
           const type = ['점심식대', '저녁식대', '야근식대', '차대', '휴일근무'].find(t => t === expense.memo);
           setExpenseType(type ? type as ExpenseType : '기타');
           if (!type) setValue('memo', expense.memo);
@@ -156,6 +158,8 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
         },
         body: JSON.stringify({
           ...data,
+          isDrinking,
+          memo: expenseType === '기타' ? data.memo : expenseType,
           isCardUsage,
           users
         }),
@@ -283,7 +287,7 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
               </div>
 
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <select
                     value={expenseType}
                     onChange={(e) => setExpenseType(e.target.value as ExpenseType)}
@@ -296,6 +300,17 @@ export default function EditExpensePage({ params }: { params: { id: string } }) 
                     <option value="휴일근무">휴일근무</option>
                     <option value="기타">기타</option>
                   </select>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={isDrinking}
+                      onChange={(e) => setIsDrinking(e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${isDrinking ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      술
+                    </span>
+                  </label>
                   {expenseType === '기타' && (
                     <Input
                       placeholder="사용내역"

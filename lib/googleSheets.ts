@@ -535,11 +535,11 @@ export const updateExpense = async (id: string, expense: ExpenseForm) => {
       return acc;
     }, []);
 
-    // 마스터 데이터 삭제 (H열까지)
+    // 마스터 데이터 삭제 (I열까지)
     if (masterRowIndex !== -1) {
       await sheets.spreadsheets.values.clear({
         spreadsheetId: process.env.SHEET_ID,
-        range: `사용내역마스터!A${masterRowIndex + 2}:H${masterRowIndex + 2}`,
+        range: `사용내역마스터!A${masterRowIndex + 2}:I${masterRowIndex + 2}`,  // H열에서 I열로 변경
       });
     }
 
