@@ -11,6 +11,7 @@ interface MenuCalendarData {
   date: string;
   menu: string;
   type: '점심식대' | '저녁식대' | '야근식대';
+  isDrinking: boolean;
 }
 
 export default function MenuCalendarPage() {
