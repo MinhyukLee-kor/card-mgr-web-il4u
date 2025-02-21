@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
+import { Beer } from 'lucide-react';
 
 interface CalendarProps {
   currentDate: Date;
@@ -11,6 +12,7 @@ interface MenuCalendarData {
   date: string;
   menu: string;
   type: '점심식대' | '저녁식대' | '야근식대';
+  isDrinking: boolean;
 }
 
 export function Calendar({ currentDate, menuData }: CalendarProps) {
@@ -66,16 +68,20 @@ export function Calendar({ currentDate, menuData }: CalendarProps) {
         const menus = getMenuForDate(date);
         const lunchMenu = menus.find(m => m.type === '점심식대');
         const dinnerMenu = menus.find(m => ['저녁식대', '야근식대'].includes(m.type));
+        const hasDrinking = menus.some(m => m.isDrinking);
         
         return (
           <div
             key={index}
             className={`p-1 min-h-[60px] sm:min-h-[100px] border ${
               isCurrentMonth ? 'bg-white' : 'bg-gray-50'
-            }`}
+            } ${hasDrinking ? 'bg-yellow-100' : ''}`}
           >
-            <div className="text-xs sm:text-sm mb-1">
-              {date.getDate()}
+            <div className="text-xs sm:text-sm mb-1 flex items-center gap-1">
+              <span>{date.getDate()}</span>
+              {hasDrinking && (
+                <Beer className="h-3 w-3 sm:h-4 sm:w-4 text-amber-500" />
+              )}
             </div>
             {lunchMenu && (
               <div className="text-[10px] sm:text-xs p-0.5 sm:p-1 mb-0.5 sm:mb-1 bg-blue-100 rounded break-words">

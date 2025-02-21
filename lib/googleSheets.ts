@@ -939,10 +939,10 @@ export const getMenuCalendarData = async (
   const sheets = getGoogleSheetClient();
   
   try {
-    // 마스터 데이터 조회
+    // 마스터 데이터 조회 (I열 포함)
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:H'
+      range: '사용내역마스터!A2:I'  // I열(음주여부)까지 조회
     });
 
     // 디테일 데이터 조회
@@ -977,7 +977,8 @@ export const getMenuCalendarData = async (
         return userDetails.map(detail => ({
           date: master[1],
           menu: detail[3],
-          type: master[4]
+          type: master[4],
+          isDrinking: master[8] === 'TRUE'  // 음주여부 추가
         }));
       });
 
