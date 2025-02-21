@@ -52,12 +52,12 @@ export default function MenuCalendarPage() {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
-            <span>메뉴 달력</span>
+            <span className="text-base">메뉴 달력</span>
             <div className="flex items-center gap-4">
               <Button variant="outline" onClick={prevMonth}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-lg">
+              <span className="text-base">
                 {currentDate.getFullYear()}년 {currentDate.getMonth() + 1}월
               </span>
               <Button variant="outline" onClick={nextMonth}>

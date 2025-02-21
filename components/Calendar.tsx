@@ -57,7 +57,7 @@ export function Calendar({ currentDate, menuData }: CalendarProps) {
   return (
     <div className="grid grid-cols-7 gap-1">
       {['일', '월', '화', '수', '목', '금', '토'].map(day => (
-        <div key={day} className="p-2 text-center font-semibold">
+        <div key={day} className="p-1 sm:p-2 text-center font-semibold text-xs sm:text-sm">
           {day}
         </div>
       ))}
@@ -70,20 +70,20 @@ export function Calendar({ currentDate, menuData }: CalendarProps) {
         return (
           <div
             key={index}
-            className={`p-1 min-h-[100px] border ${
+            className={`p-1 min-h-[60px] sm:min-h-[100px] border ${
               isCurrentMonth ? 'bg-white' : 'bg-gray-50'
             }`}
           >
-            <div className="text-sm mb-1">
+            <div className="text-xs sm:text-sm mb-1">
               {date.getDate()}
             </div>
             {lunchMenu && (
-              <div className="text-xs p-1 mb-1 bg-blue-100 rounded">
+              <div className="text-[10px] sm:text-xs p-0.5 sm:p-1 mb-0.5 sm:mb-1 bg-blue-100 rounded break-words">
                 {lunchMenu.menu}
               </div>
             )}
             {dinnerMenu && (
-              <div className="text-xs p-1 bg-orange-100 rounded">
+              <div className="text-[10px] sm:text-xs p-0.5 sm:p-1 bg-orange-100 rounded break-words">
                 {dinnerMenu.menu}
               </div>
             )}
