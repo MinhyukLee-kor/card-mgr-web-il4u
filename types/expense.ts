@@ -8,6 +8,7 @@ export interface ExpenseMaster {
   amount: number;
   memo: string;
   isCardUsage: boolean;
+  isDrinking?: boolean;
 }
 
 export interface ExpenseDetail {
@@ -23,6 +24,7 @@ export interface ExpenseForm {
   date: string;
   memo: string;
   isCardUsage: boolean;
+  isDrinking: boolean;
   users: ExpenseShare[];
   registrant?: {
     email: string;

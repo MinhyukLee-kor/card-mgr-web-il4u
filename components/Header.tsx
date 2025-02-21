@@ -96,6 +96,13 @@ export function Header() {
                   >
                     메뉴분석
                   </Link>
+                  <Link
+                    href="/menu-calendar"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    메뉴 달력
+                  </Link>
                   {user?.role === 'ADMIN' && (
                     <Link
                       href="/admin/expenses"

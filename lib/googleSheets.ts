@@ -154,23 +154,25 @@ export const createExpense = async (expense: ExpenseForm) => {
     const id = uuidv4();
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
-    const masterRow = [
+    // 마스터 데이터 생성 (기존 순서 유지)
+    const masterValues = [
       id,                                    // A: ID
       expense.date,                          // B: 날짜
       expense.registrant?.name || '',        // C: 등록자 이름
-      totalAmount,                           // D: 총액
+      totalAmount,                // D: 총액
       expense.memo,                          // E: 메모
       expense.registrant?.email || '',       // F: 등록자 이메일
       expense.isCardUsage ? 'TRUE' : 'FALSE',// G: 법인카드 여부
-      expense.registrant?.companyName || ''  // H: 회사명
+      expense.registrant?.companyName || '', // H: 회사명
+      expense.isDrinking ? 'TRUE' : 'FALSE'  // I: 음주여부 (신규)
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:H',  // H열까지 범위 확장
+      range: '사용내역마스터!A2:I',  // I열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [masterRow]
+        values: [masterValues]
       },
     });
 
@@ -505,7 +507,7 @@ export const getExpenses = async (
 };
 
 // 사용 내역 수정
-export const updateExpense = async (id: string, expense: ExpenseForm & { registrant?: { email: string; name: string } }) => {
+export const updateExpense = async (id: string, expense: ExpenseForm) => {
   const sheets = getGoogleSheetClient();
   
   try {
@@ -552,23 +554,25 @@ export const updateExpense = async (id: string, expense: ExpenseForm & { registr
     // 3. 새로운 마스터 데이터 추가
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
-    const masterRow = [
-      id,
-      expense.date,
-      expense.registrant?.name || expense.users[0].name,
-      totalAmount,
-      expense.memo,
-      expense.registrant?.email || expense.users[0].email,
-      expense.isCardUsage ? 'TRUE' : 'FALSE',
-      expense.registrant?.companyName  // 회사명 추가
+    // 마스터 데이터 업데이트 (기존 순서 유지)
+    const masterValues = [
+      id,                                    // A: ID
+      expense.date,                          // B: 날짜
+      expense.registrant?.name || '',        // C: 등록자 이름
+      totalAmount.toString(),                // D: 총액
+      expense.memo,                          // E: 메모
+      expense.registrant?.email || '',       // F: 등록자 이메일
+      expense.isCardUsage ? 'TRUE' : 'FALSE',// G: 법인카드 여부
+      expense.registrant?.companyName || '', // H: 회사명
+      expense.isDrinking ? 'TRUE' : 'FALSE'  // I: 음주여부 (신규)
     ];
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:H',  // H열까지 범위 확장
+      range: '사용내역마스터!A2:I',  // I열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
-        values: [masterRow]
+        values: [masterValues]
       },
     });
 

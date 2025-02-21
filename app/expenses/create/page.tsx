@@ -25,6 +25,7 @@ export default function CreateExpensePage() {
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string; companyName: string } | null>(null);
   const [totalAmount, setTotalAmount] = useState<number>(0);
   const [expenseType, setExpenseType] = useState<ExpenseType>('점심식대');
+  const [isDrinking, setIsDrinking] = useState(false);
   const [menus, setMenus] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [selectedRegistrant, setSelectedRegistrant] = useState<UserOption | null>(null);
@@ -159,6 +160,15 @@ export default function CreateExpensePage() {
   const onSubmit = async (data: ExpenseForm) => {
     try {
       setIsLoading(true);
+      const formData = {
+        ...data,
+        isDrinking,
+        memo: expenseType === '기타' ? data.memo : expenseType,
+        isCardUsage,
+        users,
+        registrant: isAdmin && selectedRegistrant ? selectedRegistrant : currentUser
+      };
+
       const response = await fetch('/api/expenses', {
         method: 'POST',
         headers: {
@@ -166,13 +176,7 @@ export default function CreateExpensePage() {
           'Pragma': 'no-cache',
           'Cache-Control': 'no-store, no-cache, must-revalidate'
         },
-        body: JSON.stringify({
-          ...data,
-          memo: expenseType === '기타' ? data.memo : expenseType,
-          isCardUsage,
-          users,
-          registrant: isAdmin && selectedRegistrant ? selectedRegistrant : currentUser
-        }),
+        body: JSON.stringify(formData),
       });
 
       const result = await response.json();
@@ -414,7 +418,7 @@ export default function CreateExpensePage() {
               </div>
 
               <div className="space-y-2">
-                <div className="flex gap-2">
+                <div className="flex gap-2 items-center">
                   <select
                     value={expenseType}
                     onChange={(e) => setExpenseType(e.target.value as ExpenseType)}
@@ -427,6 +431,17 @@ export default function CreateExpensePage() {
                     <option value="휴일근무">휴일근무</option>
                     <option value="기타">기타</option>
                   </select>
+                  <label className="flex items-center justify-center px-3 py-2 border rounded-md bg-white cursor-pointer transition-colors hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={isDrinking}
+                      onChange={(e) => setIsDrinking(e.target.checked)}
+                      className="hidden"
+                    />
+                    <span className={`text-sm ${isDrinking ? 'text-blue-600 font-semibold' : 'text-gray-600'}`}>
+                      술
+                    </span>
+                  </label>
                   {expenseType === '기타' && (
                     <Input
                       placeholder="사용내역"
