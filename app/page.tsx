@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Receipt, BarChart, Settings, Bell, Plus } from 'lucide-react';
+import { Receipt, BarChart, Settings, Bell, Plus, Calendar } from 'lucide-react';
 import { ChangePasswordModal } from '@/components/ChangePasswordModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button } from "@/components/ui/button";
@@ -291,10 +291,21 @@ export default function HomePage() {
             </p>
           </Card>
 
+          <Card
+            onClick={() => router.push('/menu-calendar')}
+            className="p-6 hover:bg-yellow-300 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[200px] border-2"
+          >
+            <Calendar className="h-16 w-16 mb-4 text-purple-600" />
+            <h2 className="text-xl font-semibold mb-2">메뉴 달력</h2>
+            <p className="text-gray-600 text-sm text-center">
+              날짜별로 먹은 메뉴를<br />확인할 수 있습니다.
+            </p>
+          </Card>
+
           {user?.role === 'ADMIN' && (
             <Card
               onClick={() => router.push('/admin/expenses')}
-              className="p-6 hover:bg-yellow-300 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[200px] border-2 sm:col-span-2"
+              className="p-6 hover:bg-yellow-300 transition-colors cursor-pointer flex flex-col items-center justify-center min-h-[200px] border-2"
             >
               <Settings className="h-16 w-16 mb-4 text-purple-600" />
               <h2 className="text-xl font-semibold mb-2">관리자</h2>

@@ -924,4 +924,62 @@ export const getAllCompanies = async () => {
     console.error('회사 목록 조회 중 오류 발생:', error);
     throw error;
   }
+};
+
+export const getMenuCalendarData = async (
+  userName: string,
+  companyName: string,
+  year: number,
+  month: number
+) => {
+  const sheets = getGoogleSheetClient();
+  
+  try {
+    // 마스터 데이터 조회
+    const masterResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역마스터!A2:H'
+    });
+
+    // 디테일 데이터 조회
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A2:E'
+    });
+
+    const masters = masterResponse.data.values || [];
+    const details = detailResponse.data.values || [];
+
+    // 해당 월의 시작일과 종료일
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0);
+
+    // 해당 사용자의 메뉴 데이터 필터링
+    const menuData = masters
+      .filter(master => {
+        const date = new Date(master[1]);
+        return (
+          date >= startDate &&
+          date <= endDate &&
+          master[7] === companyName &&
+          ['점심식대', '저녁식대', '야근식대'].includes(master[4])
+        );
+      })
+      .flatMap(master => {
+        const userDetails = details.filter(
+          detail => detail[0] === master[0] && detail[1] === userName && detail[3]
+        );
+        
+        return userDetails.map(detail => ({
+          date: master[1],
+          menu: detail[3],
+          type: master[4]
+        }));
+      });
+
+    return menuData;
+  } catch (error) {
+    console.error('메뉴 달력 데이터 조회 중 오류 발생:', error);
+    throw error;
+  }
 }; 
