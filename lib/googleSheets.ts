@@ -667,49 +667,48 @@ export const getExpenseById = async (id: string, companyName: string) => {
   const sheets = getGoogleSheetClient();
   
   try {
-    // 마스터 데이터 조회
+    // 마스터 데이터 조회 (I열까지 포함)
     const masterResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역마스터!A2:H',  // H열(회사)까지 조회
+      range: '사용내역마스터!A2:I'  // H열에서 I열로 변경
     });
+
+    const masters = masterResponse.data.values || [];
+    const master = masters.find(row => row[0] === id && row[7] === companyName);
+
+    if (!master) {
+      throw new Error('사용 내역을 찾을 수 없습니다.');
+    }
 
     // 디테일 데이터 조회
     const detailResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:E',  // E열(회사)까지 조회
+      range: '사용내역디테일!A2:E'
     });
 
-    // 메뉴 목록 조회
-    const menus = await getAllMenus(companyName);
-
-    const masters = masterResponse.data.values || [];
     const details = detailResponse.data.values || [];
-
-    const masterRow = masters.find(row => row[0] === id);
-    if (!masterRow) throw new Error('데이터를 찾을 수 없습니다.');
-
-    const detailRows = details.filter(row => row[0] === id);
-
-    return {
-      id,
-      date: masterRow[1],
-      registrant: {
-        name: masterRow[2],
-        email: masterRow[5],
-        companyName: masterRow[7]  // 회사명 추가
-      },
-      amount: parseInt(masterRow[3]),
-      memo: masterRow[4],
-      isCardUsage: masterRow[6] === 'TRUE',
-      users: detailRows.map(row => ({
+    const userDetails = details
+      .filter(row => row[0] === id)
+      .map(row => ({
         name: row[1],
         amount: parseInt(row[2]),
-        menu: row[3] || '',
-        customMenu: row[3] && !menus.includes(row[3]) ? row[3] : undefined
-      }))
+        menu: row[3] || undefined
+      }));
+
+    return {
+      id: master[0],
+      date: master[1],
+      registrant: {
+        name: master[2],
+        email: master[5]
+      },
+      memo: master[4],
+      isCardUsage: master[6] === 'TRUE',
+      isDrinking: master[8] === 'TRUE',  // 음주여부 추가
+      users: userDetails
     };
   } catch (error) {
-    console.error('사용 내역 상세 조회 중 오류 발생:', error);
+    console.error('사용 내역 조회 중 오류 발생:', error);
     throw error;
   }
 };
