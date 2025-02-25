@@ -31,7 +31,12 @@ export default function SignUpPage() {
   useEffect(() => {
     const fetchCompanies = async () => {
       try {
-        const response = await fetch('/api/companies');
+        const response = await fetch('/api/companies', {
+          headers: {
+            'Cache-Control': 'no-store, no-cache, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        });
         const data = await response.json();
         setCompanies(data.companies);
       } catch (error) {
