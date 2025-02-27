@@ -154,43 +154,53 @@ export const createExpense = async (expense: ExpenseForm) => {
     const id = uuidv4();
     const totalAmount = expense.users.reduce((sum, user) => sum + user.amount, 0);
 
-    // 마스터 데이터 생성 (기존 순서 유지)
+    // 마스터 데이터 생성
     const masterValues = [
-      id,                                    // A: ID
-      expense.date,                          // B: 날짜
-      expense.registrant?.name || '',        // C: 등록자 이름
-      totalAmount,                // D: 총액
-      expense.memo,                          // E: 메모
-      expense.registrant?.email || '',       // F: 등록자 이메일
-      expense.isCardUsage ? 'TRUE' : 'FALSE',// G: 법인카드 여부
-      expense.registrant?.companyName || '', // H: 회사명
-      expense.isDrinking ? 'TRUE' : 'FALSE'  // I: 음주여부 (신규)
+      id,
+      expense.date,
+      expense.registrant?.name || '',
+      totalAmount.toString(),
+      expense.memo,
+      expense.registrant?.email || '',
+      expense.isCardUsage ? 'TRUE' : 'FALSE',
+      expense.registrant?.companyName || '',
+      expense.isDrinking ? 'TRUE' : 'FALSE'
     ];
 
+    // 디테일 데이터 조회 (범위를 명확하게 A:E로 지정)
+    const detailResponse = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range: '사용내역디테일!A:E'
+    });
+
+    const details = detailResponse.data.values || [];
+    const detailStartRow = details.length + 1;  // 빈 행 찾기
+
+    // 디테일 데이터 생성 (범위를 명확하게 지정)
+    const detailValues = expense.users.map(user => [
+      id,
+      user.name,
+      user.amount.toString(),
+      user.menu || user.customMenu || '',
+      expense.registrant?.companyName || ''
+    ]);
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: process.env.SHEET_ID,
+      range: `사용내역디테일!A${detailStartRow}`,  // 시작 행을 명확하게 지정
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: detailValues
+      },
+    });
+
+    // 마스터 데이터 등록
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
       range: '사용내역마스터!A2:I',  // I열까지 범위 확장
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [masterValues]
-      },
-    });
-
-    // 디테일 데이터 등록
-    const detailRows = expense.users.map(user => [
-      id,                                    // A: ID
-      user.name,                             // B: 사용자 이름
-      user.amount,                           // C: 금액
-      user.customMenu || user.menu || '',    // D: 메뉴
-      expense.registrant?.companyName || ''  // E: 회사명
-    ]);
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: process.env.SHEET_ID,
-      range: '사용내역디테일!A2:E',  // E열까지 범위 확장
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: detailRows
       },
     });
 
@@ -209,7 +219,7 @@ export const createExpense = async (expense: ExpenseForm) => {
 
     return id;
   } catch (error) {
-    console.error('사용 내역 등록 중 오류 발생:', error);
+    console.error('사용 내역 생성 중 오류 발생:', error);
     throw error;
   }
 };
