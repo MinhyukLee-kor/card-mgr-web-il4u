@@ -176,18 +176,19 @@ export const createExpense = async (expense: ExpenseForm) => {
     const details = detailResponse.data.values || [];
     const detailStartRow = details.length + 1;  // 빈 행 찾기
 
-    // 디테일 데이터 생성 (범위를 명확하게 지정)
+    // 디테일 데이터 생성
     const detailValues = expense.users.map(user => [
       id,
       user.name,
       user.amount.toString(),
-      user.menu || user.customMenu || '',
-      expense.registrant?.companyName || ''
+      // 메뉴가 '기타'인 경우 customMenu를 사용, 아니면 menu 사용
+      user.menu === '기타' ? user.customMenu : user.menu || '',
+      user.email
     ]);
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: process.env.SHEET_ID,
-      range: `사용내역디테일!A${detailStartRow}`,  // 시작 행을 명확하게 지정
+      range: `사용내역디테일!A${detailStartRow}`,
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: detailValues
@@ -399,9 +400,10 @@ export const getExpenses = async (
         })
         .flatMap(master => {
           // 디테일 테이블에서 해당 마스터 ID의 모든 행 찾기
-          const masterDetails = details.filter(detail => 
-            detail[0] === master[0] && 
-            (!selectedUser || selectedUser === '' || detail[1] === selectedUser)
+          const masterDetails = details.filter(
+            detail => 
+              detail[0] === master[0] && 
+              (!selectedUser || selectedUser === '' || detail[1] === selectedUser)
           );
           
           // 디테일 데이터 기준으로 변환
