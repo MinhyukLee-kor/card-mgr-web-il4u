@@ -183,7 +183,7 @@ export const createExpense = async (expense: ExpenseForm) => {
       user.amount.toString(),
       // 메뉴가 '기타'인 경우 customMenu를 사용, 아니면 menu 사용
       user.menu === '기타' ? user.customMenu : user.menu || '',
-      user.email
+      expense.registrant?.companyName || ''
     ]);
 
     await sheets.spreadsheets.values.append({
